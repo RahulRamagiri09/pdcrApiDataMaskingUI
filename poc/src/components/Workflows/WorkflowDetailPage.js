@@ -19,10 +19,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   LinearProgress,
   Accordion,
   AccordionSummary,
@@ -68,7 +64,6 @@ const WorkflowDetailPage = () => {
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [executeDialog, setExecuteDialog] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [currentExecution, setCurrentExecution] = useState(null);
 
@@ -135,14 +130,13 @@ const WorkflowDetailPage = () => {
     try {
       setExecuting(true);
       const response = await maskingAPI.executeWorkflow(workflowId);
-      const execution = response.data.data;
+      const data = response.data;
 
-      setCurrentExecution(execution);
-      setExecuteDialog(false);
+      setCurrentExecution(data);
       setTabValue(1); // Switch to executions tab
 
-      // Refresh execution list
-      setTimeout(loadWorkflowData, 1000);
+      // Refresh workflow and execution data immediately
+      loadWorkflowData();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -325,7 +319,7 @@ const WorkflowDetailPage = () => {
               <Button
                 variant="contained"
                 startIcon={<PlayIcon />}
-                onClick={() => setExecuteDialog(true)}
+                onClick={handleExecuteWorkflow}
                 disabled={workflow.status === 'running' || executing}
                 fullWidth
               >
@@ -491,41 +485,6 @@ const WorkflowDetailPage = () => {
       <TabPanel value={tabValue} index={1}>
         {renderExecutionHistory()}
       </TabPanel>
-
-      {/* Execute Workflow Dialog */}
-      <Dialog open={executeDialog} onClose={() => setExecuteDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Execute Workflow</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" gutterBottom>
-            Are you sure you want to execute this workflow?
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            This will start the PII masking and data copy process from the source to destination database.
-            The process may take some time depending on the amount of data.
-          </Typography>
-
-          <Box mt={2} p={2} bgcolor="grey.100" borderRadius={1}>
-            <Typography variant="subtitle2">Workflow Summary:</Typography>
-            <Typography variant="body2">• {workflow.table_mappings?.length || 0} table(s) to process</Typography>
-            <Typography variant="body2">
-              • {workflow.table_mappings?.reduce((total, mapping) =>
-                total + (mapping.column_mappings?.filter(col => col.is_pii).length || 0), 0
-              )} PII column(s) to mask
-            </Typography>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setExecuteDialog(false)}>Cancel</Button>
-          <Button
-            onClick={handleExecuteWorkflow}
-            variant="contained"
-            disabled={executing}
-          >
-            {executing && <CircularProgress size={20} sx={{ mr: 1 }} />}
-            Execute
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };

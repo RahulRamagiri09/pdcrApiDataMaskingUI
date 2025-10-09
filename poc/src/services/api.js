@@ -72,7 +72,7 @@ export const workflowsAPI = {
 
 // Masking API
 export const maskingAPI = {
-  executeWorkflow: (workflowId) => api.post(`/masking/execute/${workflowId}`),
+  executeWorkflow: (workflowId) => api.post(`/workflows/${workflowId}/execute`),
   getExecutionStatus: (executionId) => api.get(`/masking/execution/${executionId}/status`),
   generateSampleData: (piiAttribute, count = 5) =>
     api.post('/masking/sample-data', { pii_attribute: piiAttribute, count }),

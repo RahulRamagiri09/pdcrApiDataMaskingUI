@@ -27,6 +27,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Divider,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -267,153 +268,208 @@ const WorkflowDetailPage = () => {
   };
 
   const renderWorkflowOverview = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={8}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Workflow Details
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2">Name</Typography>
-                <Typography variant="body1">{workflow.name}</Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2">Description</Typography>
-                <Typography variant="body1">{workflow.description || 'No description provided'}</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Connection</Typography>
-                <Typography variant="body2">{getConnectionName(workflow.connection_id)}</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Created</Typography>
-                <Typography variant="body2">{new Date(workflow.created_at).toLocaleString()}</Typography>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-
-        {workflow.table_mappings && (
-          <Card sx={{ mt: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Table Mappings ({workflow.table_mappings?.length || 0})
-              </Typography>
-              {workflow.table_mappings?.map((mapping, index) => (
-                <Accordion key={index}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Box display="flex" alignItems="center" width="100%">
-                      <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
-                        {mapping.source_table} → {mapping.destination_table}
-                      </Typography>
-                      <Chip
-                        label={`${mapping.column_mappings?.filter(col => col.is_pii).length || 0} PII columns`}
-                        size="small"
-                        color="primary"
-                        sx={{ mr: 2 }}
-                      />
-                    </Box>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <TableContainer component={Paper}>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Source Column</TableCell>
-                            <TableCell>Destination Column</TableCell>
-                            <TableCell>PII</TableCell>
-                            <TableCell>PII Attribute</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {mapping.column_mappings?.map((col, colIndex) => (
-                            <TableRow key={colIndex}>
-                              <TableCell>{col.source_column}</TableCell>
-                              <TableCell>{col.destination_column}</TableCell>
-                              <TableCell>
-                                {col.is_pii ? (
-                                  <Chip label="Yes" color="warning" size="small" />
-                                ) : (
-                                  <Chip label="No" variant="outlined" size="small" />
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {col.pii_attribute || '-'}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </AccordionDetails>
-                </Accordion>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-      </Grid>
-
-      <Grid item xs={12} md={4}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
+    <>
+      {/* Status & Actions Card */}
+      <Card>
+        <CardContent>
+          <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+            <Typography variant="h6">
               Status & Actions
             </Typography>
-            <Box mb={2}>
-              {getStatusChip(workflow.status)}
+            {getStatusChip(workflow.status)}
+          </Box>
+
+          <Box display="flex" flexDirection="row" gap={2}>
+            <Button
+              variant="contained"
+              startIcon={<PlayIcon />}
+              onClick={() => setExecuteDialog(true)}
+              disabled={workflow.status === 'running' || executing}
+            >
+              Execute Workflow
+            </Button>
+
+            <Button
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={() => navigate(`/workflows/${workflowId}/edit`)}
+            >
+              Edit Workflow
+            </Button>
+
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={handleDeleteWorkflow}
+            >
+              Delete Workflow
+            </Button>
+          </Box>
+
+          {currentExecution && currentExecution.status === 'running' && (
+            <Box mt={3}>
+              <Typography variant="subtitle2" gutterBottom>
+                Current Execution
+              </Typography>
+              <LinearProgress />
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Status: {currentExecution.status}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Records: {currentExecution.records_processed || 0}
+              </Typography>
             </Box>
+          )}
+        </CardContent>
+      </Card>
 
-            <Box display="flex" flexDirection="column" gap={2}>
-              <Button
-                variant="contained"
-                startIcon={<PlayIcon />}
-                onClick={() => setExecuteDialog(true)}
-                disabled={workflow.status === 'running' || executing}
-                fullWidth
-              >
-                Execute Workflow
-              </Button>
+      {/* Workflow Details Card */}
+      <Card sx={{ mt: 2 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Workflow Details
+          </Typography>
 
-              <Button
-                variant="outlined"
-                startIcon={<EditIcon />}
-                onClick={() => navigate(`/workflows/${workflowId}/edit`)}
-                fullWidth
-              >
-                Edit Workflow
-              </Button>
+          {/* Basic Information */}
+          <Box sx={{ mb: 3 }}>
+            <Grid container spacing={10}>
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" color="text.secondary">Name</Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>{workflow.name}</Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" color="text.secondary">Description</Typography>
+                <Typography variant="body1">{workflow.description || 'No description provided'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Created</Typography>
+                <Typography variant="body2">{new Date(workflow.created_at).toLocaleString()}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Last Updated</Typography>
+                <Typography variant="body2">{workflow.updated_at ? new Date(workflow.updated_at).toLocaleString() : 'N/A'}</Typography>
+              </Grid>
+            </Grid>
+          </Box>
 
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<DeleteIcon />}
-                onClick={handleDeleteWorkflow}
-                fullWidth
-              >
-                Delete Workflow
-              </Button>
-            </Box>
+          <Divider sx={{ my: 2 }} />
 
-            {currentExecution && currentExecution.status === 'running' && (
-              <Box mt={3}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Current Execution
-                </Typography>
-                <LinearProgress />
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  Status: {currentExecution.status}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Records: {currentExecution.records_processed || 0}
-                </Typography>
-              </Box>
-            )}
+          {/* Connections Side by Side */}
+          <Grid container spacing={10} sx={{ mb: 3 }}>
+            {/* Source Connection */}
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Source Connection
+              </Typography>
+              {workflow.source_connection ? (
+                <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1, mt: 1 }}>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    <strong>Name:</strong> {workflow.source_connection.name}
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    <strong>Type:</strong> {workflow.source_connection.connection_type === 'azure_sql' ? 'Azure SQL' : 'Oracle'}
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    <strong>Server:</strong> {workflow.source_connection.server}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Database:</strong> {workflow.source_connection.database}
+                  </Typography>
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary">No source connection</Typography>
+              )}
+            </Grid>
+
+            {/* Destination Connection */}
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Destination Connection
+              </Typography>
+              {workflow.destination_connection ? (
+                <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1, mt: 1 }}>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    <strong>Name:</strong> {workflow.destination_connection.name}
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    <strong>Type:</strong> {workflow.destination_connection.connection_type === 'azure_sql' ? 'Azure SQL' : 'Oracle'}
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    <strong>Server:</strong> {workflow.destination_connection.server}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Database:</strong> {workflow.destination_connection.database}
+                  </Typography>
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary">No destination connection</Typography>
+              )}
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Table Mappings Card */}
+      {workflow.table_mappings && (
+        <Card sx={{ mt: 2 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Table Mappings ({workflow.table_mappings?.length || 0})
+            </Typography>
+            {workflow.table_mappings?.map((mapping, index) => (
+              <Accordion key={index}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Box display="flex" alignItems="center" width="100%">
+                    <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
+                      {mapping.source_table} → {mapping.destination_table}
+                    </Typography>
+                    <Chip
+                      label={`${mapping.column_mappings?.filter(col => col.is_pii).length || 0} PII columns`}
+                      size="small"
+                      color="primary"
+                      sx={{ mr: 2 }}
+                    />
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <TableContainer component={Paper}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Source Column</TableCell>
+                          <TableCell>Destination Column</TableCell>
+                          <TableCell>PII</TableCell>
+                          <TableCell>PII Attribute</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {mapping.column_mappings?.map((col, colIndex) => (
+                          <TableRow key={colIndex}>
+                            <TableCell>{col.source_column}</TableCell>
+                            <TableCell>{col.destination_column}</TableCell>
+                            <TableCell>
+                              {col.is_pii ? (
+                                <Chip label="Yes" color="warning" size="small" />
+                              ) : (
+                                <Chip label="No" variant="outlined" size="small" />
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {col.pii_attribute || '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </AccordionDetails>
+              </Accordion>
+            ))}
           </CardContent>
         </Card>
-      </Grid>
-    </Grid>
+      )}
+    </>
   );
 
   const renderExecutionHistory = () => (
@@ -500,7 +556,7 @@ const WorkflowDetailPage = () => {
     }
 
     return (
-      <Box>
+      <Box sx={{ width: '100%' }}>
         <Box display="flex" alignItems="center" mb={3}>
           <Button
             startIcon={<ArrowBackIcon />}

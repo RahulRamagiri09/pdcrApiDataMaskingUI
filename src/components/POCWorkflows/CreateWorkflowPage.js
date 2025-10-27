@@ -76,11 +76,17 @@ const CreateWorkflowPage = () => {
   });
 
   const [currentTableMapping, setCurrentTableMapping] = useState({
+    source_schema: '',
     source_table: '',
+    destination_schema: '',
     destination_table: '',
     column_mappings: []
   });
 
+  const [sourceSchemas, setSourceSchemas] = useState([]);
+  const [destinationSchemas, setDestinationSchemas] = useState([]);
+  const [selectedSourceSchema, setSelectedSourceSchema] = useState('');
+  const [selectedDestinationSchema, setSelectedDestinationSchema] = useState('');
   const [sourceTables, setSourceTables] = useState([]);
   const [destinationTables, setDestinationTables] = useState([]);
   const [sourceColumns, setSourceColumns] = useState([]);
@@ -134,9 +140,14 @@ const CreateWorkflowPage = () => {
           setError('Source and destination connections must be different');
           return;
         }
-        await Promise.all([loadSourceTables(), loadDestinationTables()]);
+        // Load schemas for both source and destination connections
+        await Promise.all([loadSourceSchemas(), loadDestinationSchemas()]);
       } else if (activeStep === 1) {
-        // Validate table selection
+        // Validate schema and table selection
+        if (!selectedSourceSchema || !selectedDestinationSchema) {
+          setError('Please select both source and destination schemas');
+          return;
+        }
         if (!currentTableMapping.source_table || !currentTableMapping.destination_table) {
           setError('Please select both source and destination tables');
           return;
@@ -148,10 +159,14 @@ const CreateWorkflowPage = () => {
           setError('Please configure at least one column mapping');
           return;
         }
-        // Add current table mapping to the list
+        // Add current table mapping to the list with schema-qualified table names
         setFormData(prev => ({
           ...prev,
-          table_mappings: [...prev.table_mappings, currentTableMapping]
+          table_mappings: [...prev.table_mappings, {
+            ...currentTableMapping,
+            source_table: `${currentTableMapping.source_schema}.${currentTableMapping.source_table}`,
+            destination_table: `${currentTableMapping.destination_schema}.${currentTableMapping.destination_table}`
+          }]
         }));
       }
 
@@ -166,10 +181,45 @@ const CreateWorkflowPage = () => {
     setError(null);
   };
 
-  const loadSourceTables = async () => {
+  const loadSourceSchemas = async () => {
     try {
       setLoading(true);
-      const response = await connectionsAPI.getSourceTables(formData.source_connection_id);
+      const response = await connectionsAPI.getSourceSchemas(formData.source_connection_id);
+
+      // Handle different response structures safely
+      const data = response.data?.data || response.data || [];
+      setSourceSchemas(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message);
+      setSourceSchemas([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadDestinationSchemas = async () => {
+    try {
+      setLoading(true);
+      const response = await connectionsAPI.getDestinationSchemas(formData.destination_connection_id);
+
+      // Handle different response structures safely
+      const data = response.data?.data || response.data || [];
+      setDestinationSchemas(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message);
+      setDestinationSchemas([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSourceTablesBySchema = async (schemaName) => {
+    try {
+      setLoading(true);
+      const response = await connectionsAPI.getSourceTablesBySchema(
+        formData.source_connection_id,
+        schemaName
+      );
 
       // Handle different response structures safely
       const data = response.data?.data || response.data || [];
@@ -182,10 +232,13 @@ const CreateWorkflowPage = () => {
     }
   };
 
-  const loadDestinationTables = async () => {
+  const loadDestinationTablesBySchema = async (schemaName) => {
     try {
       setLoading(true);
-      const response = await connectionsAPI.getDestinationTables(formData.destination_connection_id);
+      const response = await connectionsAPI.getDestinationTablesBySchema(
+        formData.destination_connection_id,
+        schemaName
+      );
 
       // Handle different response structures safely
       const data = response.data?.data || response.data || [];
@@ -203,6 +256,7 @@ const CreateWorkflowPage = () => {
       setLoading(true);
       const response = await connectionsAPI.getSourceTableColumns(
         formData.source_connection_id,
+        currentTableMapping.source_schema,
         currentTableMapping.source_table
       );
 
@@ -329,12 +383,46 @@ const CreateWorkflowPage = () => {
       case 1:
         return (
           <Grid container spacing={3}>
+            {/* Source Schema and Table */}
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth required>
+                <InputLabel>Source Schema</InputLabel>
+                <Select
+                  value={selectedSourceSchema}
+                  onChange={(e) => {
+                    const schema = e.target.value;
+                    setSelectedSourceSchema(schema);
+                    setCurrentTableMapping(prev => ({
+                      ...prev,
+                      source_schema: schema,
+                      source_table: ''
+                    }));
+                    setSourceTables([]);
+                    if (schema) {
+                      loadSourceTablesBySchema(schema);
+                    }
+                  }}
+                  label="Source Schema"
+                >
+                  {sourceSchemas.map((schema) => (
+                    <MenuItem key={schema} value={schema}>
+                      {schema}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <FormControl fullWidth required disabled={!selectedSourceSchema}>
                 <InputLabel>Source Table</InputLabel>
                 <Select
                   value={currentTableMapping.source_table}
-                  onChange={(e) => setCurrentTableMapping(prev => ({ ...prev, source_table: e.target.value }))}
+                  onChange={(e) => {
+                    setCurrentTableMapping(prev => ({
+                      ...prev,
+                      source_table: e.target.value
+                    }));
+                  }}
                   label="Source Table"
                 >
                   {sourceTables.map((table) => (
@@ -345,12 +433,47 @@ const CreateWorkflowPage = () => {
                 </Select>
               </FormControl>
             </Grid>
+
+            {/* Destination Schema and Table */}
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth required>
+                <InputLabel>Destination Schema</InputLabel>
+                <Select
+                  value={selectedDestinationSchema}
+                  onChange={(e) => {
+                    const schema = e.target.value;
+                    setSelectedDestinationSchema(schema);
+                    setCurrentTableMapping(prev => ({
+                      ...prev,
+                      destination_schema: schema,
+                      destination_table: ''
+                    }));
+                    setDestinationTables([]);
+                    if (schema) {
+                      loadDestinationTablesBySchema(schema);
+                    }
+                  }}
+                  label="Destination Schema"
+                >
+                  {destinationSchemas.map((schema) => (
+                    <MenuItem key={schema} value={schema}>
+                      {schema}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <FormControl fullWidth required disabled={!selectedDestinationSchema}>
                 <InputLabel>Destination Table</InputLabel>
                 <Select
                   value={currentTableMapping.destination_table}
-                  onChange={(e) => setCurrentTableMapping(prev => ({ ...prev, destination_table: e.target.value }))}
+                  onChange={(e) => {
+                    setCurrentTableMapping(prev => ({
+                      ...prev,
+                      destination_table: e.target.value
+                    }));
+                  }}
                   label="Destination Table"
                 >
                   {destinationTables.map((table) => (
@@ -361,9 +484,10 @@ const CreateWorkflowPage = () => {
                 </Select>
               </FormControl>
             </Grid>
+
             <Grid size={12}>
               <Typography variant="body2" color="text.secondary">
-                Select the source table to copy data from and select the destination table.
+                First select schemas for source and destination, then select the tables to copy data from and to.
               </Typography>
             </Grid>
           </Grid>

@@ -210,8 +210,15 @@ export const connectionsAPI = {
   getDestinationTables: (connectionId) => pocApi.get(`/connections/${connectionId}/destination_tables`),
   getTableColumns: (connectionId, tableName) =>
     pocApi.get(`/connections/${connectionId}/tables/${tableName}/columns`),
-  getSourceTableColumns: (connectionId, tableName) =>
-    pocApi.get(`/connections/${connectionId}/source_tables/${tableName}/columns`),
+  getSourceTableColumns: (connectionId, schemaName, tableName) =>
+    pocApi.get(`/connections/${connectionId}/schemas/${schemaName}/source_tables/${tableName}/columns`),
+  // Schema APIs
+  getSourceSchemas: (connectionId) => pocApi.get(`/connections/${connectionId}/source_schemas`),
+  getDestinationSchemas: (connectionId) => pocApi.get(`/connections/${connectionId}/destination_schemas`),
+  getSourceTablesBySchema: (connectionId, schemaName) =>
+    pocApi.get(`/connections/${connectionId}/schemas/${schemaName}/source_tables`),
+  getDestinationTablesBySchema: (connectionId, schemaName) =>
+    pocApi.get(`/connections/${connectionId}/schemas/${schemaName}/destination_tables`),
 };
 
 // Workflows API (POC)

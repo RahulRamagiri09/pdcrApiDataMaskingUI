@@ -38,7 +38,7 @@ import {
   Delete as DeleteIcon,
   Preview as PreviewIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { connectionsAPI, workflowsAPI, maskingAPI } from '../../services/api';
 import Navbar from '../Navbar/Navbar';
 import { getCurrentUser } from '../../utils/auth';
@@ -59,8 +59,10 @@ const theme = createTheme({
 
 const CreateWorkflowPage = () => {
   const navigate = useNavigate();
+  const { id: workflowId } = useParams();
   const user = getCurrentUser();
-  const [activeStep, setActiveStep] = useState(0);
+  const isEditMode = Boolean(workflowId);
+  const [activeStep, setActiveStep] = useState(isEditMode ? 2 : 0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [connections, setConnections] = useState([]);
@@ -95,7 +97,12 @@ const CreateWorkflowPage = () => {
 
   useEffect(() => {
     loadInitialData();
-  }, []);
+
+    // Load workflow data if in edit mode
+    if (isEditMode && workflowId) {
+      loadWorkflowForEdit(workflowId);
+    }
+  }, [workflowId, isEditMode]);
 
   const loadInitialData = async () => {
     try {
@@ -115,6 +122,66 @@ const CreateWorkflowPage = () => {
       setError(err.message);
       setConnections([]);
       setPiiAttributes([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadWorkflowForEdit = async (id) => {
+    try {
+      setLoading(true);
+      const response = await workflowsAPI.getById(id);
+      const workflowData = response.data?.data || response.data;
+
+      // Populate formData with existing workflow
+      setFormData({
+        name: workflowData.name,
+        description: workflowData.description,
+        source_connection_id: workflowData.source_connection_id,
+        destination_connection_id: workflowData.destination_connection_id,
+        table_mappings: workflowData.table_mappings || []
+      });
+
+      // If there's at least one table mapping, populate current table mapping
+      if (workflowData.table_mappings && workflowData.table_mappings.length > 0) {
+        const firstMapping = workflowData.table_mappings[0];
+
+        // Extract schema from schema-qualified table names (e.g., "dbo.Users_sample_pp")
+        const [sourceSchema, sourceTable] = firstMapping.source_table.split('.');
+        const [destSchema, destTable] = firstMapping.destination_table.split('.');
+
+        setSelectedSourceSchema(sourceSchema);
+        setSelectedDestinationSchema(destSchema);
+
+        // Load schemas for dropdowns - pass connection IDs directly
+        await Promise.all([
+          loadSourceSchemas(workflowData.source_connection_id),
+          loadDestinationSchemas(workflowData.destination_connection_id)
+        ]);
+
+        // Load tables for selected schemas - pass connection IDs directly
+        await Promise.all([
+          loadSourceTablesBySchema(sourceSchema, workflowData.source_connection_id),
+          loadDestinationTablesBySchema(destSchema, workflowData.destination_connection_id)
+        ]);
+
+        // Set current table mapping (without schema-qualified names for editing)
+        setCurrentTableMapping({
+          source_schema: sourceSchema,
+          source_table: sourceTable,
+          destination_schema: destSchema,
+          destination_table: destTable,
+          column_mappings: firstMapping.column_mappings || []
+        });
+
+        // Load source columns for display
+        setSourceColumns(firstMapping.column_mappings.map(col => ({
+          name: col.source_column,
+          data_type: col.data_type || 'varchar'
+        })));
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to load workflow');
     } finally {
       setLoading(false);
     }
@@ -141,7 +208,10 @@ const CreateWorkflowPage = () => {
           return;
         }
         // Load schemas for both source and destination connections
-        await Promise.all([loadSourceSchemas(), loadDestinationSchemas()]);
+        await Promise.all([
+          loadSourceSchemas(formData.source_connection_id),
+          loadDestinationSchemas(formData.destination_connection_id)
+        ]);
       } else if (activeStep === 1) {
         // Validate schema and table selection
         if (!selectedSourceSchema || !selectedDestinationSchema) {
@@ -159,15 +229,30 @@ const CreateWorkflowPage = () => {
           setError('Please configure at least one column mapping');
           return;
         }
-        // Add current table mapping to the list with schema-qualified table names
-        setFormData(prev => ({
-          ...prev,
-          table_mappings: [...prev.table_mappings, {
-            ...currentTableMapping,
-            source_table: `${currentTableMapping.source_schema}.${currentTableMapping.source_table}`,
-            destination_table: `${currentTableMapping.destination_schema}.${currentTableMapping.destination_table}`
-          }]
-        }));
+        // Add or update table mapping with schema-qualified table names
+        const mappingToSave = {
+          ...currentTableMapping,
+          source_table: `${currentTableMapping.source_schema}.${currentTableMapping.source_table}`,
+          destination_table: `${currentTableMapping.destination_schema}.${currentTableMapping.destination_table}`
+        };
+
+        setFormData(prev => {
+          if (isEditMode) {
+            // In edit mode, replace the first table mapping
+            const updatedMappings = [...prev.table_mappings];
+            updatedMappings[0] = mappingToSave;
+            return {
+              ...prev,
+              table_mappings: updatedMappings
+            };
+          } else {
+            // In create mode, add the new table mapping
+            return {
+              ...prev,
+              table_mappings: [...prev.table_mappings, mappingToSave]
+            };
+          }
+        });
       }
 
       setActiveStep(prev => prev + 1);
@@ -181,10 +266,11 @@ const CreateWorkflowPage = () => {
     setError(null);
   };
 
-  const loadSourceSchemas = async () => {
+  const loadSourceSchemas = async (connectionId) => {
     try {
       setLoading(true);
-      const response = await connectionsAPI.getSourceSchemas(formData.source_connection_id);
+      const connId = connectionId || formData.source_connection_id;
+      const response = await connectionsAPI.getSourceSchemas(connId);
 
       // Handle different response structures safely
       const data = response.data?.data || response.data || [];
@@ -197,10 +283,11 @@ const CreateWorkflowPage = () => {
     }
   };
 
-  const loadDestinationSchemas = async () => {
+  const loadDestinationSchemas = async (connectionId) => {
     try {
       setLoading(true);
-      const response = await connectionsAPI.getDestinationSchemas(formData.destination_connection_id);
+      const connId = connectionId || formData.destination_connection_id;
+      const response = await connectionsAPI.getDestinationSchemas(connId);
 
       // Handle different response structures safely
       const data = response.data?.data || response.data || [];
@@ -213,11 +300,12 @@ const CreateWorkflowPage = () => {
     }
   };
 
-  const loadSourceTablesBySchema = async (schemaName) => {
+  const loadSourceTablesBySchema = async (schemaName, connectionId) => {
     try {
       setLoading(true);
+      const connId = connectionId || formData.source_connection_id;
       const response = await connectionsAPI.getSourceTablesBySchema(
-        formData.source_connection_id,
+        connId,
         schemaName
       );
 
@@ -232,11 +320,12 @@ const CreateWorkflowPage = () => {
     }
   };
 
-  const loadDestinationTablesBySchema = async (schemaName) => {
+  const loadDestinationTablesBySchema = async (schemaName, connectionId) => {
     try {
       setLoading(true);
+      const connId = connectionId || formData.destination_connection_id;
       const response = await connectionsAPI.getDestinationTablesBySchema(
-        formData.destination_connection_id,
+        connId,
         schemaName
       );
 
@@ -287,9 +376,17 @@ const CreateWorkflowPage = () => {
   const handleColumnMappingChange = (index, field, value) => {
     setCurrentTableMapping(prev => ({
       ...prev,
-      column_mappings: prev.column_mappings.map((mapping, i) =>
-        i === index ? { ...mapping, [field]: value } : mapping
-      )
+      column_mappings: prev.column_mappings.map((mapping, i) => {
+        if (i === index) {
+          const updatedMapping = { ...mapping, [field]: value };
+          // When unchecking "Is PII", also clear the PII attribute
+          if (field === 'is_pii' && value === false) {
+            updatedMapping.pii_attribute = '';
+          }
+          return updatedMapping;
+        }
+        return mapping;
+      })
     }));
   };
 
@@ -312,7 +409,11 @@ const CreateWorkflowPage = () => {
   const handleCreateWorkflow = async () => {
     try {
       setLoading(true);
-      await workflowsAPI.create(formData);
+      if (isEditMode) {
+        await workflowsAPI.update(workflowId, formData);
+      } else {
+        await workflowsAPI.create(formData);
+      }
       navigate('/workflows');
     } catch (err) {
       setError(err.message);
@@ -399,7 +500,7 @@ const CreateWorkflowPage = () => {
                     }));
                     setSourceTables([]);
                     if (schema) {
-                      loadSourceTablesBySchema(schema);
+                      loadSourceTablesBySchema(schema, formData.source_connection_id);
                     }
                   }}
                   label="Source Schema"
@@ -450,7 +551,7 @@ const CreateWorkflowPage = () => {
                     }));
                     setDestinationTables([]);
                     if (schema) {
-                      loadDestinationTablesBySchema(schema);
+                      loadDestinationTablesBySchema(schema, formData.destination_connection_id);
                     }
                   }}
                   label="Destination Schema"
@@ -632,10 +733,12 @@ const CreateWorkflowPage = () => {
           </IconButton>
           <Box>
             <Typography variant="h4" gutterBottom>
-              Create New Workflow
+              {isEditMode ? 'Edit Workflow' : 'Create New Workflow'}
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
-              Set up a new PII masking and data copy workflow
+              {isEditMode
+                ? 'Modify your PII masking and data copy workflow configuration'
+                : 'Set up a new PII masking and data copy workflow'}
             </Typography>
           </Box>
         </Box>
@@ -672,7 +775,9 @@ const CreateWorkflowPage = () => {
                 disabled={loading}
               >
                 {loading && <CircularProgress size={20} sx={{ mr: 1 }} />}
-                {activeStep === steps.length - 1 ? 'Create Workflow' : 'Next'}
+                {activeStep === steps.length - 1
+                  ? (isEditMode ? 'Update Workflow' : 'Create Workflow')
+                  : 'Next'}
               </Button>
             </Box>
           </CardContent>

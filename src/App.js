@@ -52,6 +52,14 @@ function App() {
             }
           />
           <Route
+            path="/workflows/:id/edit"
+            element={
+              <ProtectedRoute>
+                <CreateWorkflowPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/workflows/:id"
             element={
               <ProtectedRoute>

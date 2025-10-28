@@ -679,7 +679,7 @@ const WorkflowDetailPage = () => {
             onClick={() => navigate('/workflows')}
             sx={{ mr: 2 }}
           >
-            {/* Back to Workflows */}
+            Back to Workflows
           </Button>
           <Box flexGrow={1}>
             <Typography variant="h4" gutterBottom>

@@ -39,6 +39,8 @@ import {
   Schedule as ScheduleIcon,
   ExpandMore as ExpandMoreIcon,
   Refresh as RefreshIcon,
+  Visibility as ViewLogsIcon,
+  Stop as StopIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { workflowsAPI, maskingAPI, connectionsAPI } from '../../services/api';
@@ -91,6 +93,11 @@ const WorkflowDetailPage = () => {
   const [currentExecution, setCurrentExecution] = useState(null);
   const [taskId, setTaskId] = useState(null);
   const [pollingInterval, setPollingInterval] = useState(null);
+  const [logsDialog, setLogsDialog] = useState({
+    open: false,
+    logs: [],
+    executionId: null
+  });
 
   useEffect(() => {
     loadWorkflowData();
@@ -200,6 +207,35 @@ const WorkflowDetailPage = () => {
       } catch (err) {
         setError(err.message);
       }
+    }
+  };
+
+  const handleViewLogs = (execution) => {
+    setLogsDialog({
+      open: true,
+      logs: execution.execution_logs || [],
+      executionId: execution.id
+    });
+  };
+
+  const handleCloseLogsDialog = () => {
+    setLogsDialog({
+      open: false,
+      logs: [],
+      executionId: null
+    });
+  };
+
+  const handleStopExecution = async (executionId) => {
+    try {
+      setLoading(true);
+      await maskingAPI.stopExecution(workflow.id, executionId);
+      setError(null);
+      await loadWorkflowData(); // Reload to show updated status
+    } catch (err) {
+      setError(err.message || 'Failed to stop execution');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -499,6 +535,7 @@ const WorkflowDetailPage = () => {
                   <TableCell>Completed</TableCell>
                   <TableCell>Records</TableCell>
                   <TableCell>Duration</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -525,6 +562,29 @@ const WorkflowDetailPage = () => {
                       </TableCell>
                       <TableCell>{execution.records_processed || 0}</TableCell>
                       <TableCell>{duration ? `${duration}s` : '-'}</TableCell>
+                      <TableCell>
+                        <Box display="flex" gap={1}>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleViewLogs(execution)}
+                            disabled={!execution.execution_logs || execution.execution_logs.length === 0}
+                            title="View Logs"
+                            color="primary"
+                          >
+                            <ViewLogsIcon fontSize="small" />
+                          </IconButton>
+                          {execution.status === 'running' && (
+                            <IconButton
+                              size="small"
+                              onClick={() => handleStopExecution(execution.id)}
+                              title="Stop Execution"
+                              color="error"
+                            >
+                              <StopIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                        </Box>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -534,6 +594,62 @@ const WorkflowDetailPage = () => {
         )}
       </CardContent>
     </Card>
+  );
+
+  const renderLogsDialog = () => (
+    <Dialog
+      open={logsDialog.open}
+      onClose={handleCloseLogsDialog}
+      maxWidth="md"
+      fullWidth
+    >
+      <DialogTitle>
+        Execution Logs - ID: {logsDialog.executionId}
+      </DialogTitle>
+      <DialogContent>
+        {logsDialog.logs.length === 0 ? (
+          <Typography color="text.secondary">
+            No logs available for this execution.
+          </Typography>
+        ) : (
+          <Box
+            component="pre"
+            sx={{
+              backgroundColor: '#f5f5f5',
+              padding: 2,
+              borderRadius: 1,
+              overflow: 'auto',
+              maxHeight: '500px',
+              fontFamily: 'monospace',
+              fontSize: '0.875rem',
+              lineHeight: 1.6,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word'
+            }}
+          >
+            {logsDialog.logs.map((log, index) => (
+              <Box key={index} sx={{ mb: 0.5 }}>
+                <Typography
+                  component="span"
+                  sx={{
+                    color: log.toLowerCase().includes('error') || log.toLowerCase().includes('failed') ? 'error.main' :
+                           log.toLowerCase().includes('success') || log.toLowerCase().includes('completed') ? 'success.main' :
+                           'text.primary',
+                    fontFamily: 'monospace',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  {index + 1}. {log}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleCloseLogsDialog}>Close</Button>
+      </DialogActions>
+    </Dialog>
   );
 
   const workflowDetailContent = () => {
@@ -563,7 +679,7 @@ const WorkflowDetailPage = () => {
             onClick={() => navigate('/workflows')}
             sx={{ mr: 2 }}
           >
-            Back to Workflows
+            {/* Back to Workflows */}
           </Button>
           <Box flexGrow={1}>
             <Typography variant="h4" gutterBottom>
@@ -643,6 +759,7 @@ const WorkflowDetailPage = () => {
           <Box sx={{ maxWidth: 'xl', mx: 'auto', mt: 3, mb: 3, px: 3 }}>
             {workflowDetailContent()}
           </Box>
+          {renderLogsDialog()}
         </ThemeProvider>
       </div>
     </div>

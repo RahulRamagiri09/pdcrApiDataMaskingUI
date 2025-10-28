@@ -236,6 +236,7 @@ export const workflowsAPI = {
 export const maskingAPI = {
   executeWorkflow: (workflowId) => pocApi.post(`/workflows/${workflowId}/execute`),
   getExecutionStatus: (workflowId, executionId) => pocApi.get(`/workflows/${workflowId}/executions/${executionId}/status`),
+  stopExecution: (workflowId, executionId) => pocApi.post(`/workflows/${workflowId}/executions/${executionId}/stop`),
   generateSampleData: (piiAttribute, count = 5) =>
     pocApi.post('/masking/sample-data', { pii_attribute: piiAttribute, count }),
   validateWorkflow: (workflowId) => pocApi.post('/masking/validate-workflow', { workflow_id: workflowId }),

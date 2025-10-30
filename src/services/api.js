@@ -242,6 +242,32 @@ export const maskingAPI = {
   validateWorkflow: (workflowId) => pocApi.post('/masking/validate-workflow', { workflow_id: workflowId }),
 };
 
+// Constraint Checking APIs (POC)
+export const constraintsAPI = {
+  // Check all constraints for a specific table
+  checkAll: (connectionId, schemaName, tableName) =>
+    pocApi.get(`/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/all`),
+
+  // Individual constraint checks
+  checkPrimaryKeys: (connectionId, schemaName, tableName) =>
+    pocApi.get(`/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/primary-keys`),
+
+  checkForeignKeys: (connectionId, schemaName, tableName) =>
+    pocApi.get(`/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/foreign-keys`),
+
+  checkUniqueConstraints: (connectionId, schemaName, tableName) =>
+    pocApi.get(`/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/unique`),
+
+  checkCheckConstraints: (connectionId, schemaName, tableName) =>
+    pocApi.get(`/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/check`),
+
+  checkTriggers: (connectionId, schemaName, tableName) =>
+    pocApi.get(`/connections/${connectionId}/tables/${schemaName}/${tableName}/triggers`),
+
+  checkIndexes: (connectionId, schemaName, tableName) =>
+    pocApi.get(`/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/indexes`)
+};
+
 // Health check (POC)
 export const healthAPI = {
   check: () => pocApi.get('/health'),

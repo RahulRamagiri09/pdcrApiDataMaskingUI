@@ -1266,13 +1266,17 @@ const WorkflowDetailPage = () => {
     return (
       <Box sx={{ width: '100%' }}>
         <Box display="flex" alignItems="center" mb={3}>
-          <Button
-            startIcon={<ArrowBackIcon />}
+          <IconButton
             onClick={() => navigate('/workflows')}
-            sx={{ mr: 2 }}
+            sx={{
+              mr: 2,
+              '&:hover': {
+                backgroundColor: 'action.hover',
+              }
+            }}
           >
-            Back to Workflows
-          </Button>
+            <ArrowBackIcon />
+          </IconButton>
           <Box flexGrow={1}>
             <Typography variant="h4" gutterBottom>
               {workflow.name}

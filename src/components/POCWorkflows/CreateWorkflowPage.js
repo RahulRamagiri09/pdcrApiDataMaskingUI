@@ -67,6 +67,13 @@ const CreateWorkflowPage = () => {
   const [error, setError] = useState(null);
   const [connections, setConnections] = useState([]);
   const [piiAttributes, setPiiAttributes] = useState([]);
+  const [categorizedPiiAttributes, setCategorizedPiiAttributes] = useState({
+    string: [],
+    date: [],
+    datetime: [],
+    numeric: [],
+    boolean: []
+  });
   const [previewDialog, setPreviewDialog] = useState({ open: false, attribute: '', samples: [] });
 
   const [formData, setFormData] = useState({
@@ -95,6 +102,48 @@ const CreateWorkflowPage = () => {
 
   const steps = ['Basic Info', 'Select Tables', 'Configure Mapping', 'Review & Create'];
 
+  // Map SQL data types to PII attribute categories
+  const getAttributeCategoryForDataType = (dataType) => {
+    if (!dataType) return 'string'; // Default to string if no data type
+
+    const type = dataType.toLowerCase();
+
+    // Numeric types
+    if (type.includes('int') || type.includes('numeric') || type.includes('decimal') ||
+        type.includes('float') || type.includes('real') || type.includes('money')) {
+      return 'numeric';
+    }
+
+    // Date types (no time component)
+    if (type === 'date') {
+      return 'date';
+    }
+
+    // DateTime types (with time component)
+    if (type.includes('datetime') || type.includes('timestamp') || type.includes('time')) {
+      return 'datetime';
+    }
+
+    // Boolean types
+    if (type === 'bit' || type === 'bool' || type === 'boolean') {
+      return 'boolean';
+    }
+
+    // String types (default) - varchar, nvarchar, char, nchar, text, ntext, etc.
+    return 'string';
+  };
+
+  // Get filtered PII attributes based on column data type
+  const getFilteredPiiAttributes = (columnName) => {
+    const columnInfo = sourceColumns.find(col => col.name === columnName);
+    if (!columnInfo || !columnInfo.data_type) {
+      return piiAttributes; // Fallback to all if no data type info
+    }
+
+    const category = getAttributeCategoryForDataType(columnInfo.data_type);
+    return categorizedPiiAttributes[category] || [];
+  };
+
   useEffect(() => {
     loadInitialData();
 
@@ -117,11 +166,60 @@ const CreateWorkflowPage = () => {
       const piiData = piiRes.data?.data || piiRes.data || [];
 
       setConnections(Array.isArray(connectionsData) ? connectionsData : []);
-      setPiiAttributes(Array.isArray(piiData) ? piiData : []);
+
+      // Handle both old (flat array) and new (categorized object) API response formats
+      if (piiData && typeof piiData === 'object' && !Array.isArray(piiData)) {
+        // New categorized format: { string: [...], date: [...], datetime: [...], numeric: [...], boolean: [...] }
+        const flatArray = [
+          ...(Array.isArray(piiData.string) ? piiData.string : []),
+          ...(Array.isArray(piiData.date) ? piiData.date : []),
+          ...(Array.isArray(piiData.datetime) ? piiData.datetime : []),
+          ...(Array.isArray(piiData.numeric) ? piiData.numeric : []),
+          ...(Array.isArray(piiData.boolean) ? piiData.boolean : [])
+        ];
+        setPiiAttributes(flatArray);
+
+        // Store categorized structure for smart filtering
+        setCategorizedPiiAttributes({
+          string: Array.isArray(piiData.string) ? piiData.string : [],
+          date: Array.isArray(piiData.date) ? piiData.date : [],
+          datetime: Array.isArray(piiData.datetime) ? piiData.datetime : [],
+          numeric: Array.isArray(piiData.numeric) ? piiData.numeric : [],
+          boolean: Array.isArray(piiData.boolean) ? piiData.boolean : []
+        });
+      } else if (Array.isArray(piiData)) {
+        // Old flat array format: ["first_name", "last_name", ...]
+        setPiiAttributes(piiData);
+        // No categorized data available, fallback to showing all attributes for all types
+        setCategorizedPiiAttributes({
+          string: piiData,
+          date: piiData,
+          datetime: piiData,
+          numeric: piiData,
+          boolean: piiData
+        });
+      } else {
+        // Invalid or empty response
+        setPiiAttributes([]);
+        setCategorizedPiiAttributes({
+          string: [],
+          date: [],
+          datetime: [],
+          numeric: [],
+          boolean: []
+        });
+      }
     } catch (err) {
       setError(err.message);
       setConnections([]);
       setPiiAttributes([]);
+      setCategorizedPiiAttributes({
+        string: [],
+        date: [],
+        datetime: [],
+        numeric: [],
+        boolean: []
+      });
     } finally {
       setLoading(false);
     }
@@ -174,11 +272,23 @@ const CreateWorkflowPage = () => {
           column_mappings: firstMapping.column_mappings || []
         });
 
-        // Load source columns for display
-        setSourceColumns(firstMapping.column_mappings.map(col => ({
-          name: col.source_column,
-          data_type: col.data_type || 'varchar'
-        })));
+        // Load source columns for display - fetch actual data types from database
+        try {
+          const columnsResponse = await connectionsAPI.getSourceTableColumns(
+            workflowData.source_connection_id,
+            sourceSchema,
+            sourceTable
+          );
+          const columnsData = columnsResponse.data?.data || columnsResponse.data || [];
+          setSourceColumns(Array.isArray(columnsData) ? columnsData : []);
+        } catch (err) {
+          console.error('Failed to load column types:', err);
+          // Fallback to stored data with varchar default
+          setSourceColumns(firstMapping.column_mappings.map(col => ({
+            name: col.source_column,
+            data_type: 'varchar'
+          })));
+        }
       }
     } catch (err) {
       setError(err.message || 'Failed to load workflow');
@@ -646,9 +756,9 @@ const CreateWorkflowPage = () => {
                               displayEmpty
                             >
                               <MenuItem value="">Select attribute</MenuItem>
-                              {piiAttributes.map((attr) => (
+                              {getFilteredPiiAttributes(mapping.source_column).map((attr) => (
                                 <MenuItem key={attr} value={attr}>
-                                  {attr.replace('_', ' ')}
+                                  {attr.replace(/_/g, ' ')}
                                 </MenuItem>
                               ))}
                             </Select>

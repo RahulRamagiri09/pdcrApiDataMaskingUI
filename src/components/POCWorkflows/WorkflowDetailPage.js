@@ -96,6 +96,9 @@ const WorkflowDetailPage = () => {
   const [executeDialog, setExecuteDialog] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [currentExecution, setCurrentExecution] = useState(null);
+  // Polling-related state (commented out - manual refresh only)
+  // const [taskId, setTaskId] = useState(null);
+  // const [pollingInterval, setPollingInterval] = useState(null);
   const [logsDialog, setLogsDialog] = useState({
     open: false,
     logs: [],
@@ -112,6 +115,7 @@ const WorkflowDetailPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflowId]);
 
+  // Automatic polling disabled - manual refresh only via refresh icon button
   // useEffect(() => {
   //   let interval;
   //   if (currentExecution && (currentExecution.status === 'running' || currentExecution.status === 'queued')) {
@@ -120,6 +124,7 @@ const WorkflowDetailPage = () => {
   //   return () => {
   //     if (interval) clearInterval(interval);
   //   };
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
   // }, [currentExecution]);
 
   const loadWorkflowData = async () => {
@@ -143,6 +148,30 @@ const WorkflowDetailPage = () => {
     }
   };
 
+  // Polling function disabled - manual refresh only via refresh icon button
+  // const checkExecutionStatus = async () => {
+  //   if (!currentExecution) return;
+  //
+  //   try {
+  //     const response = await maskingAPI.getExecutionStatus(
+  //       workflowId,
+  //       currentExecution.execution_id || currentExecution.id
+  //     );
+  //     const updatedExecution = response.data?.data || response.data;
+  //
+  //     setCurrentExecution(updatedExecution);
+  //
+  //     // Stop polling when execution completes or fails
+  //     if (updatedExecution.status === 'completed' || updatedExecution.status === 'failed') {
+  //       setCurrentExecution(null);
+  //       setExecuting(false);
+  //       loadWorkflowData(); // Reload the full execution list
+  //     }
+  //   } catch (err) {
+  //     console.error('Failed to check execution status:', err);
+  //   }
+  // };
+
   const handleExecuteWorkflow = async () => {
     try {
       setExecuting(true);
@@ -162,11 +191,11 @@ const WorkflowDetailPage = () => {
       };
 
       setCurrentExecution(execution);
+      // setTaskId(result.task_id); // Commented out - polling disabled
       setExecuteDialog(false);
       setTabValue(1);
 
-      // Don't set executing to false - let polling handle it
-      // Show success message
+      // Execution queued - no automatic polling, manual refresh only
       setError(null);
     } catch (err) {
       setError(err.message || 'Failed to start workflow execution');

@@ -234,7 +234,8 @@ export const workflowsAPI = {
 
 // Masking API (POC)
 export const maskingAPI = {
-  executeWorkflow: (workflowId) => pocApi.post(`/workflows/${workflowId}/execute`),
+  // executeWorkflow: (workflowId) => pocApi.post(`/workflows/${workflowId}/execute`),
+  executeWorkflow: (workflowId) => pocApi.post(`/workflows/${workflowId}/execute/without/enable/disable`),
   getExecutionStatus: (workflowId, executionId) => pocApi.get(`/workflows/${workflowId}/executions/${executionId}/status`),
   stopExecution: (workflowId, executionId) => pocApi.post(`/workflows/${workflowId}/executions/${executionId}/stop`),
   generateSampleData: (piiAttribute, count = 5) =>

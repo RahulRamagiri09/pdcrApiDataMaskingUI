@@ -10,6 +10,13 @@ import RoleRegistration from './components/RoleRegistration/RoleRegistration';
 import UserRegistration from './components/UserRegistration/UserRegistration';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 
+// Single Server Components
+import SingleServerDashboard from './components/SingleServerDashboard/SingleServerDashboard';
+import SingleServerConnectionsPage from './components/SingleServerConnections/SingleServerConnectionsPage';
+import SingleServerWorkflowsPage from './components/SingleServerWorkflows/SingleServerWorkflowsPage';
+import CreateSingleServerWorkflowPage from './components/SingleServerWorkflows/CreateWorkflowPage';
+import SingleServerWorkflowDetailPage from './components/SingleServerWorkflows/WorkflowDetailPage';
+
 function App() {
   return (
     <Router>
@@ -64,6 +71,56 @@ function App() {
             element={
               <ProtectedRoute>
                 <WorkflowDetailPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Single Server routes */}
+          <Route
+            path="/single-server/dashboard"
+            element={
+              <ProtectedRoute>
+                <SingleServerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/single-server/connections"
+            element={
+              <ProtectedRoute>
+                <SingleServerConnectionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/single-server/workflows"
+            element={
+              <ProtectedRoute>
+                <SingleServerWorkflowsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/single-server/workflows/create"
+            element={
+              <ProtectedRoute>
+                <CreateSingleServerWorkflowPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/single-server/workflows/:id/edit"
+            element={
+              <ProtectedRoute>
+                <CreateSingleServerWorkflowPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/single-server/workflows/:id"
+            element={
+              <ProtectedRoute>
+                <SingleServerWorkflowDetailPage />
               </ProtectedRoute>
             }
           />

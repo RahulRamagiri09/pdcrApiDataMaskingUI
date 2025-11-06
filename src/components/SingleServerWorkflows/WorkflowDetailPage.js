@@ -93,6 +93,7 @@ const WorkflowDetailPage = () => {
   const [workflow, setWorkflow] = useState(null);
   const [executions, setExecutions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [executionsLoading, setExecutionsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [executeDialog, setExecuteDialog] = useState(false);
   const [executing, setExecuting] = useState(false);
@@ -194,6 +195,20 @@ const WorkflowDetailPage = () => {
       setError(err.message || 'Failed to load workflow');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadExecutions = async () => {
+    try {
+      setExecutionsLoading(true);
+      const executionsRes = await singleServerWorkflowsAPI.getExecutions(workflowId);
+      const executionsData = executionsRes.data?.data || executionsRes.data || [];
+      setExecutions(Array.isArray(executionsData) ? executionsData : []);
+    } catch (err) {
+      console.error('Failed to load executions:', err);
+      setError(err.message || 'Failed to load execution history');
+    } finally {
+      setExecutionsLoading(false);
     }
   };
 
@@ -1130,7 +1145,7 @@ const WorkflowDetailPage = () => {
       <CardContent>
         <Box position="relative">
           {/* Loading Overlay */}
-          {loading && (
+          {executionsLoading && (
             <Box
               position="absolute"
               top={0}
@@ -1152,7 +1167,7 @@ const WorkflowDetailPage = () => {
             <Typography variant="h6">
               Execution History ({executions.length})
             </Typography>
-            <IconButton onClick={loadWorkflowData}>
+            <IconButton onClick={loadExecutions}>
               <RefreshIcon />
             </IconButton>
           </Box>

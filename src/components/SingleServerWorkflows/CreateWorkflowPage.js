@@ -243,7 +243,10 @@ const CreateWorkflowPage = () => {
         connection_id: workflowData.connection_id,
         schema_name: schemaName,
         table_name: tableName,
-        column_mappings: columnMappings
+        column_mappings: columnMappings.map(col => ({
+          ...col,
+          pii_attribute: col.pii_attribute || '' // Convert null/undefined to empty string for placeholder
+        }))
       });
 
       setSelectedSchema(schemaName);

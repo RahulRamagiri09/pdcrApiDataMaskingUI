@@ -171,7 +171,10 @@ const WorkflowDetailPage = () => {
       console.log('[DEBUG] Normalized workflow:', normalizedWorkflow);
 
       setWorkflow(normalizedWorkflow);
-      setExecutions(Array.isArray(executionsData) ? executionsData : []);
+      const sortedExecutions = Array.isArray(executionsData)
+        ? executionsData.sort((a, b) => b.id - a.id)  // Sort by ID descending (newest first)
+        : [];
+      setExecutions(sortedExecutions);
 
       // Fetch connection details separately if connection_id exists but connection object is missing
       if (workflowData && workflowData.connection_id && !workflowData.connection) {
@@ -201,9 +204,25 @@ const WorkflowDetailPage = () => {
   const loadExecutions = async () => {
     try {
       setExecutionsLoading(true);
-      const executionsRes = await singleServerWorkflowsAPI.getExecutions(workflowId);
+
+      // Call both APIs like POC implementation
+      const [workflowRes, executionsRes] = await Promise.all([
+        singleServerWorkflowsAPI.getById(workflowId),
+        singleServerWorkflowsAPI.getExecutions(workflowId)
+      ]);
+
+      // Update workflow data to refresh status
+      const workflowData = workflowRes.data?.data || workflowRes.data;
+      if (workflowData) {
+        setWorkflow(prevWorkflow => ({ ...prevWorkflow, ...workflowData }));
+      }
+
+      // Update executions with sorting
       const executionsData = executionsRes.data?.data || executionsRes.data || [];
-      setExecutions(Array.isArray(executionsData) ? executionsData : []);
+      const sortedExecutions = Array.isArray(executionsData)
+        ? executionsData.sort((a, b) => b.id - a.id)  // Sort by ID descending (newest first)
+        : [];
+      setExecutions(sortedExecutions);
     } catch (err) {
       console.error('Failed to load executions:', err);
       setError(err.message || 'Failed to load execution history');

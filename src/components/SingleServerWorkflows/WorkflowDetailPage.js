@@ -1204,7 +1204,8 @@ const WorkflowDetailPage = () => {
                   <TableCell>Status</TableCell>
                   <TableCell>Started</TableCell>
                   <TableCell>Completed</TableCell>
-                  <TableCell>Records</TableCell>
+                  <TableCell>Total Records</TableCell>
+                  <TableCell>Processed Records</TableCell>
                   <TableCell>Duration</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
@@ -1231,6 +1232,7 @@ const WorkflowDetailPage = () => {
                       <TableCell>
                         {execution.completed_at ? new Date(execution.completed_at).toLocaleString() : '-'}
                       </TableCell>
+                      <TableCell>{execution.records_total || 0}</TableCell>
                       <TableCell>{execution.records_processed || 0}</TableCell>
                       <TableCell>{duration ? `${duration}s` : '-'}</TableCell>
                       <TableCell>

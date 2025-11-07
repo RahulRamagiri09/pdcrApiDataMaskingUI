@@ -1200,14 +1200,14 @@ const WorkflowDetailPage = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Execution ID</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Started</TableCell>
-                  <TableCell>Completed</TableCell>
-                  <TableCell>Total Records</TableCell>
-                  <TableCell>Processed Records</TableCell>
-                  <TableCell>Duration</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell align="left">Execution ID</TableCell>
+                  <TableCell align="left">Status</TableCell>
+                  <TableCell align="left">Started</TableCell>
+                  <TableCell align="left">Completed</TableCell>
+                  <TableCell align="left">Total Records</TableCell>
+                  <TableCell align="left">Processed Records</TableCell>
+                  <TableCell align="left">Duration</TableCell>
+                  <TableCell align="left">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -1218,7 +1218,7 @@ const WorkflowDetailPage = () => {
 
                   return (
                     <TableRow key={execution.id}>
-                      <TableCell>
+                      <TableCell align="left">
                         <Typography variant="body2" component="code" sx={{
                           backgroundColor: '#f5f5f5',
                           padding: '2px 6px',
@@ -1227,15 +1227,15 @@ const WorkflowDetailPage = () => {
                           {execution.id}
                         </Typography>
                       </TableCell>
-                      <TableCell>{getStatusChip(execution.status)}</TableCell>
-                      <TableCell>{new Date(execution.started_at).toLocaleString()}</TableCell>
-                      <TableCell>
+                      <TableCell align="left">{getStatusChip(execution.status)}</TableCell>
+                      <TableCell align="left">{new Date(execution.started_at).toLocaleString()}</TableCell>
+                      <TableCell align="left">
                         {execution.completed_at ? new Date(execution.completed_at).toLocaleString() : '-'}
                       </TableCell>
-                      <TableCell>{execution.records_total || 0}</TableCell>
-                      <TableCell>{execution.records_processed || 0}</TableCell>
-                      <TableCell>{duration ? `${duration}s` : '-'}</TableCell>
-                      <TableCell>
+                      <TableCell align="left">{execution.records_total || 0}</TableCell>
+                      <TableCell align="left">{execution.records_processed || 0}</TableCell>
+                      <TableCell align="left">{duration ? `${duration}s` : '-'}</TableCell>
+                      <TableCell align="left">
                         <Box display="flex" gap={1}>
                           <IconButton
                             size="small"

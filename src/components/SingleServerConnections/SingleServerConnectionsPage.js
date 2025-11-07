@@ -30,11 +30,11 @@ import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
-// Create Material-UI theme with green/orange accent for single-server
+// Create Material-UI theme with blue/orange accent for single-server
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#2e7d32', // Green theme for single-server
+      main: '#0b2677', // Blue theme for single-server
     },
     secondary: {
       main: '#ed6c02', // Orange accent

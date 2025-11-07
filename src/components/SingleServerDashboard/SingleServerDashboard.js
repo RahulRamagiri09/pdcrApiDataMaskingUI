@@ -16,6 +16,7 @@ import {
   Add as AddIcon,
   CheckCircle as CheckIcon,
   Error as ErrorIcon,
+  PersonAdd as PersonAddIcon,
   Security as SecurityIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -25,11 +26,11 @@ import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
-// Create Material-UI theme with green accent for single-server
+// Create Material-UI theme with blue accent for single-server
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#2e7d32', // Green theme
+      main: '#0b2677', // Blue theme
     },
     secondary: {
       main: '#ed6c02', // Orange accent
@@ -240,6 +241,20 @@ const SingleServerDashboard = () => {
                     onClick={() => navigate('/single-server/connections')}
                   >
                     Add Connection
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<PersonAddIcon />}
+                    onClick={() => navigate('/register-user')}
+                  >
+                    Register New User
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<SecurityIcon />}
+                    onClick={() => navigate('/register-role')}
+                  >
+                    Create New Role
                   </Button>
                   <Button
                     variant="outlined"

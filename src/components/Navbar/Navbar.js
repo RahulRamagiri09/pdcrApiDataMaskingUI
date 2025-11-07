@@ -37,12 +37,12 @@ const Navbar = ({ user }) => {
   };
 
   const navButtons = [
-    { name: 'Dashboard', path: '/dashboard' },
-    { name: 'Connections', path: '/connections' },
-    { name: 'Workflows', path: '/workflows' },
-    { name: 'SS Dashboard', path: '/single-server/dashboard', color: 'green' },
-    { name: 'SS Connections', path: '/single-server/connections', color: 'green' },
-    { name: 'SS Workflows', path: '/single-server/workflows', color: 'green' }
+    // { name: 'Dashboard', path: '/dashboard' },
+    // { name: 'Connections', path: '/connections' },
+    // { name: 'Workflows', path: '/workflows' },
+    { name: 'S-Dashboard', path: '/single-server/dashboard', color: 'green' },
+    { name: 'S-Connections', path: '/single-server/connections', color: 'green' },
+    { name: 'S-Workflows', path: '/single-server/workflows', color: 'green' }
   ];
 
   return (
@@ -70,11 +70,7 @@ const Navbar = ({ user }) => {
                     onClick={() => navigate(button.path)}
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                       isActive(button.path)
-                        ? isGreen
-                          ? 'bg-green-700 text-white shadow-md border border-green-500'
-                          : 'bg-white bg-opacity-25 text-white shadow-md border border-white border-opacity-30'
-                        : isGreen
-                        ? 'text-white hover:bg-green-700 border border-transparent hover:border-green-500'
+                        ? 'bg-white bg-opacity-25 text-white shadow-md border border-white border-opacity-30'
                         : 'text-white hover:text-white hover:bg-white hover:bg-opacity-15 border border-transparent hover:border-white hover:border-opacity-20'
                     }`}
                     title={isGreen ? 'Single-Server System' : ''}

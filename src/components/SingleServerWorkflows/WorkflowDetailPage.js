@@ -55,11 +55,11 @@ import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
-// Create Material-UI theme with green accent
+// Create Material-UI theme with blue accent
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#2e7d32', // Green theme
+      main: '#0b2677', // Blue theme
     },
     secondary: {
       main: '#ed6c02', // Orange accent

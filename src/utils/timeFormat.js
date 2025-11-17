@@ -8,8 +8,8 @@
  * - 70 seconds → "1 min 10 sec"
  * - 125 seconds → "2 min 5 sec"
  * - 60 seconds → "1 min"
- * - 3900 seconds → "1 hour 5 min"
- * - 7265 seconds → "2 hours 1 min 5 sec"
+ * - 3900 seconds → "1hr 5 min"
+ * - 7265 seconds → "2hr 1 min 5 sec"
  */
 export const formatDuration = (seconds) => {
   if (!seconds && seconds !== 0) {
@@ -40,8 +40,7 @@ export const formatDuration = (seconds) => {
   const remainingMinutes = Math.floor((totalSeconds % 3600) / 60);
   const remainingSeconds = totalSeconds % 60;
 
-  const hourText = hours === 1 ? 'hour' : 'hours';
-  let result = `${hours} ${hourText}`;
+  let result = `${hours}hr`;
 
   if (remainingMinutes > 0) {
     result += ` ${remainingMinutes} min`;

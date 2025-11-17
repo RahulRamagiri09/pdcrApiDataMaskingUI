@@ -29,6 +29,7 @@ import {
   AccordionDetails,
   Divider,
 } from '@mui/material';
+import { formatDuration } from '../../utils/timeFormat';
 import {
   ArrowBack as ArrowBackIcon,
   PlayArrow as PlayIcon,
@@ -1152,7 +1153,7 @@ const WorkflowDetailPage = () => {
                         {execution.completed_at ? new Date(execution.completed_at).toLocaleString() : '-'}
                       </TableCell>
                       <TableCell>{execution.records_processed || 0}</TableCell>
-                      <TableCell>{duration ? `${duration}s` : '-'}</TableCell>
+                      <TableCell>{formatDuration(duration)}</TableCell>
                       <TableCell>
                         <Box display="flex" gap={1}>
                           <IconButton

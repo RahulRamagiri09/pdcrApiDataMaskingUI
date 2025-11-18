@@ -48,6 +48,7 @@ import {
   Rule as RuleIcon,
   Bolt as BoltIcon,
   Storage as StorageIcon,
+  Preview as PreviewIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { singleServerWorkflowsAPI, singleServerMaskingAPI, singleServerConnectionsAPI, singleServerConstraintsAPI } from '../../services/api';
@@ -112,6 +113,13 @@ const WorkflowDetailPage = () => {
   const [mappingTabValue, setMappingTabValue] = useState({});
   const [constraintChecks, setConstraintChecks] = useState({});
   const [expandedConstraints, setExpandedConstraints] = useState({});
+
+  // Preview masking state
+  const [previewData, setPreviewData] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState(null);
+  const [previewRecordLimit, setPreviewRecordLimit] = useState(2);
+  const [expandedRecords, setExpandedRecords] = useState({});
 
   useEffect(() => {
     console.log('[DEBUG] useEffect fired with workflowId:', workflowId);
@@ -325,6 +333,46 @@ const WorkflowDetailPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Preview masking handlers
+  const handleLoadPreview = async () => {
+    try {
+      setPreviewLoading(true);
+      setPreviewError(null);
+      setPreviewData(null); // Clear old data before loading new preview
+
+      // Fetch preview with original and masked data in one call
+      const response = await singleServerMaskingAPI.getPreviewMasking(workflow.id, previewRecordLimit);
+      const responseData = response.data?.data;
+
+      if (!responseData || !responseData.preview_results || responseData.preview_results.length === 0) {
+        setPreviewError('No records found in the target table');
+        setPreviewData(null);
+        return;
+      }
+
+      setPreviewData({
+        results: responseData.preview_results,
+        schema_name: responseData.schema_name,
+        table_name: responseData.table_name,
+        total_records: responseData.total_records,
+        sample_count: responseData.sample_count
+      });
+
+    } catch (err) {
+      setPreviewError(err.response?.data?.detail || err.message || 'Failed to load preview');
+      setPreviewData(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleToggleRecord = (index) => {
+    setExpandedRecords(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
   };
 
   // Constraint checking handlers
@@ -1271,6 +1319,181 @@ const WorkflowDetailPage = () => {
     </Card>
   );
 
+  const renderPreviewMasking = () => {
+    // Get PII column names for highlighting
+    const piiColumns = workflow?.column_mappings
+      ?.filter(mapping => mapping.is_pii)
+      ?.map(mapping => mapping.column_name) || [];
+
+    return (
+      <Card>
+        <CardContent>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h6">
+              Preview Masking on Sample Records
+            </Typography>
+            <Box display="flex" gap={2} alignItems="center">
+              <Box display="flex" alignItems="center" gap={1}>
+                <Typography variant="body2">Records:</Typography>
+                <select
+                  value={previewRecordLimit}
+                  onChange={(e) => setPreviewRecordLimit(Number(e.target.value))}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '4px',
+                    border: '1px solid #ccc',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value={2}>2</option>
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
+                </select>
+              </Box>
+              <Button
+                variant="contained"
+                startIcon={previewLoading ? <CircularProgress size={16} color="inherit" /> : <PreviewIcon />}
+                onClick={handleLoadPreview}
+                disabled={previewLoading}
+              >
+                {previewLoading ? 'Loading...' : 'Load Preview'}
+              </Button>
+            </Box>
+          </Box>
+
+          <Alert severity="info" sx={{ mb: 2 }}>
+            This preview shows how masking will affect sample records from your table.
+            <strong> No data will be modified in the database.</strong>
+          </Alert>
+
+          {previewError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {previewError}
+            </Alert>
+          )}
+
+          {previewData && (
+            <>
+              <Box mb={2}>
+                <Typography variant="body2" color="text.secondary">
+                  Table: <strong>{previewData.schema_name}.{previewData.table_name}</strong> |
+                  Total Records: <strong>{previewData.total_records?.toLocaleString()}</strong> |
+                  Showing: <strong>{previewData.sample_count}</strong> sample records
+                </Typography>
+              </Box>
+
+              {previewData.results.map((result, index) => {
+                const isExpanded = expandedRecords[index] || false;
+                const allColumns = Object.keys(result.original);
+
+                return (
+                  <Accordion
+                    key={index}
+                    expanded={isExpanded}
+                    onChange={() => handleToggleRecord(index)}
+                    sx={{ mb: 1 }}
+                  >
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                      <Typography variant="subtitle1">
+                        Record {index + 1}
+                        {result.original.id !== undefined && ` - ID: ${result.original.id}`}
+                      </Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <TableContainer component={Paper} variant="outlined">
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 'bold', width: '25%' }}>Column Name</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold', width: '37.5%' }}>Original Value</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold', width: '37.5%' }}>Masked Value</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {allColumns.map((columnName) => {
+                              const isPII = piiColumns.includes(columnName);
+                              const originalValue = result.original[columnName];
+                              const maskedValue = result.masked[columnName];
+                              const hasChanged = originalValue !== maskedValue;
+
+                              return (
+                                <TableRow
+                                  key={columnName}
+                                  sx={{
+                                    backgroundColor: isPII ? '#fff3e0' : 'inherit',
+                                  }}
+                                >
+                                  <TableCell>
+                                    <Box display="flex" alignItems="center" gap={1}>
+                                      {columnName}
+                                      {isPII && (
+                                        <Chip
+                                          label="PII"
+                                          size="small"
+                                          color="warning"
+                                          sx={{ height: 20, fontSize: '0.7rem' }}
+                                        />
+                                      )}
+                                    </Box>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        fontFamily: 'monospace',
+                                        wordBreak: 'break-all'
+                                      }}
+                                    >
+                                      {originalValue === null ? <em>null</em> : String(originalValue)}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        fontFamily: 'monospace',
+                                        fontWeight: hasChanged ? 'bold' : 'normal',
+                                        color: hasChanged ? 'primary.main' : 'inherit',
+                                        wordBreak: 'break-all'
+                                      }}
+                                    >
+                                      {maskedValue === null ? <em>null</em> : String(maskedValue)}
+                                    </Typography>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </AccordionDetails>
+                  </Accordion>
+                );
+              })}
+            </>
+          )}
+
+          {!previewData && !previewLoading && !previewError && (
+            <Box
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+              justifyContent="center"
+              py={6}
+            >
+              <PreviewIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+              <Typography variant="body1" color="text.secondary">
+                Click "Load Preview" to see how masking will affect your data
+              </Typography>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   const renderLogsDialog = () => (
     <Dialog
       open={logsDialog.open}
@@ -1402,6 +1625,7 @@ const WorkflowDetailPage = () => {
           <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
             <Tab label="Overview" />
             <Tab label="Execution History" />
+            <Tab label="Preview Masking" />
           </Tabs>
         </Box>
 
@@ -1411,6 +1635,10 @@ const WorkflowDetailPage = () => {
 
         <TabPanel value={tabValue} index={1}>
           {renderExecutionHistory()}
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={2}>
+          {renderPreviewMasking()}
         </TabPanel>
 
         <Dialog open={executeDialog} onClose={() => setExecuteDialog(false)} maxWidth="sm" fullWidth>

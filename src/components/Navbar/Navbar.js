@@ -40,9 +40,9 @@ const Navbar = ({ user }) => {
     // { name: 'Dashboard', path: '/dashboard' },
     // { name: 'Connections', path: '/connections' },
     // { name: 'Workflows', path: '/workflows' },
-    { name: 'S-Dashboard', path: '/single-server/dashboard', color: 'green' },
-    { name: 'S-Connections', path: '/single-server/connections', color: 'green' },
-    { name: 'S-Workflows', path: '/single-server/workflows', color: 'green' }
+    { name: 'Dashboard', path: '/single-server/dashboard', color: 'green' },
+    { name: 'Connections', path: '/single-server/connections', color: 'green' },
+    { name: 'Workflows', path: '/single-server/workflows', color: 'green' }
   ];
 
   return (

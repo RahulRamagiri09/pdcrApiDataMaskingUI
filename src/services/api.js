@@ -337,6 +337,10 @@ export const singleServerMaskingAPI = {
   // Validate workflow configuration
   validateWorkflow: (workflowId) =>
     pocApi.post('/single-server/masking/validate-workflow', { workflow_id: workflowId }),
+
+  // Preview masking - get sample records with original and masked data
+  getPreviewMasking: (workflowId, limit = 10) =>
+    pocApi.get(`/single-server/workflows/${workflowId}/preview?limit=${limit}`),
 };
 
 // Single Server Constraints API

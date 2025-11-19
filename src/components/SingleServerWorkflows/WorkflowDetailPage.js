@@ -120,6 +120,7 @@ const WorkflowDetailPage = () => {
   const [previewError, setPreviewError] = useState(null);
   const [previewRecordLimit, setPreviewRecordLimit] = useState(2);
   const [expandedRecords, setExpandedRecords] = useState({});
+  const [previewSubTab, setPreviewSubTab] = useState(0);
 
   useEffect(() => {
     console.log('[DEBUG] useEffect fired with workflowId:', workflowId);
@@ -1138,95 +1139,6 @@ const WorkflowDetailPage = () => {
         </CardContent>
       </Card>
 
-      {/* Column Mappings Card - Always show with helpful message if data missing */}
-      <Card sx={{ mt: 2 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Column Mappings
-          </Typography>
-
-          {!workflow.column_mappings || workflow.column_mappings.length === 0 ? (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              No column mappings found for this workflow.
-              {!workflow.column_mappings && (
-                <Box component="span" sx={{ display: 'block', mt: 1, fontWeight: 'bold' }}>
-                  Note: The backend API may not be returning column_mappings data. Please check the API response.
-                </Box>
-              )}
-            </Alert>
-          ) : (
-            <Accordion defaultExpanded>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box display="flex" alignItems="center" width="100%">
-                  <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
-                    {workflow.schema_name}.{workflow.table_name}
-                  </Typography>
-                  <Chip
-                    label={`${workflow.column_mappings.filter(col => col.is_pii).length} PII columns`}
-                    size="small"
-                    color="primary"
-                    sx={{ mr: 2 }}
-                  />
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Box sx={{ width: '100%' }}>
-                  <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                    <Tabs
-                      value={mappingTabValue[0] || 0}
-                      onChange={(e, newValue) => handleMappingTabChange(0, newValue)}
-                    >
-                      <Tab label="Column Mappings" />
-                      <Tab label="Constraint Checks" />
-                    </Tabs>
-                  </Box>
-
-                  {/* Tab Panel 1: Column Mappings */}
-                  {(mappingTabValue[0] || 0) === 0 && (
-                    <Box sx={{ p: 3 }}>
-                      <TableContainer component={Paper}>
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow>
-                              <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Column Name</TableCell>
-                              <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>PII</TableCell>
-                              <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>PII Attribute</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {workflow.column_mappings.map((col, colIndex) => (
-                              <TableRow key={colIndex}>
-                                <TableCell>{col.column_name}</TableCell>
-                                <TableCell>
-                                  {col.is_pii ? (
-                                    <Chip label="Yes" color="warning" size="small" />
-                                  ) : (
-                                    <Chip label="No" variant="outlined" size="small" />
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  {col.pii_attribute || '-'}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </Box>
-                  )}
-
-                  {/* Tab Panel 2: Constraint Checks */}
-                  {(mappingTabValue[0] || 0) === 1 && (
-                    <Box sx={{ p: 3 }}>
-                      {renderConstraintChecks({ destination_table: `${workflow.schema_name}.${workflow.table_name}` }, 0)}
-                    </Box>
-                  )}
-                </Box>
-              </AccordionDetails>
-            </Accordion>
-          )}
-        </CardContent>
-      </Card>
     </Box>
   );
 
@@ -1350,165 +1262,249 @@ const WorkflowDetailPage = () => {
     return (
       <Card>
         <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6">
-              Preview Masking on Sample Records
-            </Typography>
-            <Box display="flex" gap={2} alignItems="center">
-              <Box display="flex" alignItems="center" gap={1}>
-                <Typography variant="body2">Records:</Typography>
-                <select
-                  value={previewRecordLimit}
-                  onChange={(e) => setPreviewRecordLimit(Number(e.target.value))}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '4px',
-                    border: '1px solid #ccc',
-                    fontSize: '14px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value={2}>2</option>
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={15}>15</option>
-                </select>
-              </Box>
-              <Button
-                variant="contained"
-                startIcon={previewLoading ? <CircularProgress size={16} color="inherit" /> : <PreviewIcon />}
-                onClick={handleLoadPreview}
-                disabled={previewLoading}
-              >
-                {previewLoading ? 'Loading...' : 'Load Preview'}
-              </Button>
-            </Box>
+          {/* Nested Tabs for Preview Masking */}
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+            <Tabs value={previewSubTab} onChange={(_, newValue) => setPreviewSubTab(newValue)}>
+              <Tab label="Column Mapping" />
+              <Tab label="Constraint Checks" />
+              <Tab label="Preview Masking" />
+            </Tabs>
           </Box>
 
-          <Alert severity="info" sx={{ mb: 2 }}>
-            This preview shows how masking will affect sample records from your table.
-            <strong> No data will be modified in the database.</strong>
-          </Alert>
+          {/* Sub-Tab 0: Column Mapping */}
+          {previewSubTab === 0 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Column Mappings
+              </Typography>
 
-          {previewError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {previewError}
-            </Alert>
+              {!workflow.column_mappings || workflow.column_mappings.length === 0 ? (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  No column mappings found for this workflow.
+                </Alert>
+              ) : (
+                <Box sx={{ mt: 2 }}>
+                  <Box mb={2}>
+                    <Typography variant="subtitle1" gutterBottom>
+                      {workflow.schema_name}.{workflow.table_name}
+                    </Typography>
+                    <Chip
+                      label={`${workflow.column_mappings.filter(col => col.is_pii).length} PII columns`}
+                      size="small"
+                      color="primary"
+                    />
+                  </Box>
+                  <TableContainer component={Paper}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Column Name</TableCell>
+                          <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>PII</TableCell>
+                          <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>PII Attribute</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {workflow.column_mappings.map((col, colIndex) => (
+                          <TableRow key={colIndex}>
+                            <TableCell>{col.column_name}</TableCell>
+                            <TableCell>
+                              {col.is_pii ? (
+                                <Chip label="Yes" color="warning" size="small" />
+                              ) : (
+                                <Chip label="No" variant="outlined" size="small" />
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {col.pii_attribute || '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              )}
+            </Box>
           )}
 
-          {previewData && (
-            <>
-              <Box mb={2}>
-                <Typography variant="body2" color="text.secondary">
-                  Table: <strong>{previewData.schema_name}.{previewData.table_name}</strong> |
-                  Total Records: <strong>{previewData.total_records?.toLocaleString()}</strong> |
-                  Showing: <strong>{previewData.sample_count}</strong> sample records
+          {/* Sub-Tab 1: Constraint Checks */}
+          {previewSubTab === 1 && (
+            <Box>
+              {renderConstraintChecks({ destination_table: `${workflow.schema_name}.${workflow.table_name}` }, 0)}
+            </Box>
+          )}
+
+          {/* Sub-Tab 2: Preview Masking */}
+          {previewSubTab === 2 && (
+            <Box>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="h6">
+                  Preview Masking on Sample Records
                 </Typography>
+                <Box display="flex" gap={2} alignItems="center">
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Typography variant="body2">Records:</Typography>
+                    <select
+                      value={previewRecordLimit}
+                      onChange={(e) => setPreviewRecordLimit(Number(e.target.value))}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '4px',
+                        border: '1px solid #ccc',
+                        fontSize: '14px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value={2}>2</option>
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={15}>15</option>
+                    </select>
+                  </Box>
+                  <Button
+                    variant="contained"
+                    startIcon={previewLoading ? <CircularProgress size={16} color="inherit" /> : <PreviewIcon />}
+                    onClick={handleLoadPreview}
+                    disabled={previewLoading}
+                  >
+                    {previewLoading ? 'Loading...' : 'Load Preview'}
+                  </Button>
+                </Box>
               </Box>
 
-              {previewData.results.map((result, index) => {
-                const isExpanded = expandedRecords[index] || false;
-                const allColumns = Object.keys(result.original);
+              <Alert severity="info" sx={{ mb: 2 }}>
+                This preview shows how masking will affect sample records from your table.
+                <strong> No data will be modified in the database.</strong>
+              </Alert>
 
-                return (
-                  <Accordion
-                    key={index}
-                    expanded={isExpanded}
-                    onChange={() => handleToggleRecord(index)}
-                    sx={{ mb: 1 }}
-                  >
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Typography variant="subtitle1">
-                        Record {index + 1}
-                        {result.original.id !== undefined && ` - ID: ${result.original.id}`}
-                      </Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                      <TableContainer component={Paper} variant="outlined">
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow>
-                              <TableCell sx={{ fontWeight: 'bold', width: '25%' }}>Column Name</TableCell>
-                              <TableCell sx={{ fontWeight: 'bold', width: '37.5%' }}>Original Value</TableCell>
-                              <TableCell sx={{ fontWeight: 'bold', width: '37.5%' }}>Masked Value</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {allColumns.map((columnName) => {
-                              const isPII = piiColumns.includes(columnName);
-                              const originalValue = result.original[columnName];
-                              const maskedValue = result.masked[columnName];
-                              const hasChanged = originalValue !== maskedValue;
+              {previewError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {previewError}
+                </Alert>
+              )}
 
-                              return (
-                                <TableRow
-                                  key={columnName}
-                                  sx={{
-                                    backgroundColor: isPII ? '#fff3e0' : 'inherit',
-                                  }}
-                                >
-                                  <TableCell>
-                                    <Box display="flex" alignItems="center" gap={1}>
-                                      {columnName}
-                                      {isPII && (
-                                        <Chip
-                                          label="PII"
-                                          size="small"
-                                          color="warning"
-                                          sx={{ height: 20, fontSize: '0.7rem' }}
-                                        />
-                                      )}
-                                    </Box>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Typography
-                                      variant="body2"
-                                      sx={{
-                                        fontFamily: 'monospace',
-                                        wordBreak: 'break-all'
-                                      }}
-                                    >
-                                      {originalValue === null ? <em>null</em> : String(originalValue)}
-                                    </Typography>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Typography
-                                      variant="body2"
-                                      sx={{
-                                        fontFamily: 'monospace',
-                                        fontWeight: hasChanged ? 'bold' : 'normal',
-                                        color: hasChanged ? 'primary.main' : 'inherit',
-                                        wordBreak: 'break-all'
-                                      }}
-                                    >
-                                      {maskedValue === null ? <em>null</em> : String(maskedValue)}
-                                    </Typography>
-                                  </TableCell>
+              {previewData && (
+                <>
+                  <Box mb={2}>
+                    <Typography variant="body2" color="text.secondary">
+                      Table: <strong>{previewData.schema_name}.{previewData.table_name}</strong> |
+                      Total Records: <strong>{previewData.total_records?.toLocaleString()}</strong> |
+                      Showing: <strong>{previewData.sample_count}</strong> sample records
+                    </Typography>
+                  </Box>
+
+                  {previewData.results.map((result, index) => {
+                    const isExpanded = expandedRecords[index] || false;
+                    const allColumns = Object.keys(result.original);
+
+                    return (
+                      <Accordion
+                        key={index}
+                        expanded={isExpanded}
+                        onChange={() => handleToggleRecord(index)}
+                        sx={{ mb: 1 }}
+                      >
+                        <AccordionSummary
+                          expandIcon={<ExpandMoreIcon />}
+                          sx={{
+                            backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                            '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.12)' },
+                            borderLeft: '4px solid #1976d2'
+                          }}
+                        >
+                          <Typography variant="subtitle1" fontWeight="500">
+                            Record {index + 1}
+                            {result.original.id !== undefined && ` - ID: ${result.original.id}`}
+                          </Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                          <TableContainer component={Paper} variant="outlined">
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold', width: '25%' }}>Column Name</TableCell>
+                                  <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold', width: '37.5%' }}>Original Value</TableCell>
+                                  <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold', width: '37.5%' }}>Masked Value</TableCell>
                                 </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </AccordionDetails>
-                  </Accordion>
-                );
-              })}
-            </>
-          )}
+                              </TableHead>
+                              <TableBody>
+                                {allColumns.map((columnName) => {
+                                  const isPII = piiColumns.includes(columnName);
+                                  const originalValue = result.original[columnName];
+                                  const maskedValue = result.masked[columnName];
+                                  const hasChanged = originalValue !== maskedValue;
 
-          {!previewData && !previewLoading && !previewError && (
-            <Box
-              display="flex"
-              flexDirection="column"
-              alignItems="center"
-              justifyContent="center"
-              py={6}
-            >
-              <PreviewIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-              <Typography variant="body1" color="text.secondary">
-                Click "Load Preview" to see how masking will affect your data
-              </Typography>
+                                  return (
+                                    <TableRow
+                                      key={columnName}
+                                      sx={{
+                                        backgroundColor: isPII ? '#fff3e0' : 'inherit',
+                                      }}
+                                    >
+                                      <TableCell>
+                                        <Box display="flex" alignItems="center" gap={1}>
+                                          {columnName}
+                                          {isPII && (
+                                            <Chip
+                                              label="PII"
+                                              size="small"
+                                              color="warning"
+                                              sx={{ height: 20, fontSize: '0.7rem' }}
+                                            />
+                                          )}
+                                        </Box>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Typography
+                                          variant="body2"
+                                          sx={{
+                                            fontFamily: 'monospace',
+                                            wordBreak: 'break-all'
+                                          }}
+                                        >
+                                          {originalValue === null ? <em>null</em> : String(originalValue)}
+                                        </Typography>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Typography
+                                          variant="body2"
+                                          sx={{
+                                            fontFamily: 'monospace',
+                                            fontWeight: hasChanged ? 'bold' : 'normal',
+                                            color: hasChanged ? 'primary.main' : 'inherit',
+                                            wordBreak: 'break-all'
+                                          }}
+                                        >
+                                          {maskedValue === null ? <em>null</em> : String(maskedValue)}
+                                        </Typography>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        </AccordionDetails>
+                      </Accordion>
+                    );
+                  })}
+                </>
+              )}
+
+              {!previewData && !previewLoading && !previewError && (
+                <Box
+                  display="flex"
+                  flexDirection="column"
+                  alignItems="center"
+                  justifyContent="center"
+                  py={6}
+                >
+                  <PreviewIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+                  <Typography variant="body1" color="text.secondary">
+                    Click "Load Preview" to see how masking will affect your data
+                  </Typography>
+                </Box>
+              )}
             </Box>
           )}
         </CardContent>

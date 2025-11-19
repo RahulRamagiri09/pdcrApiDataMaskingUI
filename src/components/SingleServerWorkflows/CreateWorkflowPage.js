@@ -594,11 +594,11 @@ const CreateWorkflowPage = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Column Name</TableCell>
-                    <TableCell>Data Type</TableCell>
-                    <TableCell>Is PII</TableCell>
-                    <TableCell>PII Attribute</TableCell>
-                    <TableCell>Preview</TableCell>
+                    <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Column Name</TableCell>
+                    <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Data Type</TableCell>
+                    <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Is PII</TableCell>
+                    <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>PII Attribute</TableCell>
+                    <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Preview</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

@@ -616,37 +616,55 @@ const WorkflowDetailPage = () => {
       pk: {
         label: 'Primary Keys',
         icon: KeyIcon,
-        color: 'primary.main',
+        color: '#1976d2',
+        borderColor: '#1976d2',
+        backgroundColor: 'rgba(25, 118, 210, 0.08)',
+        buttonColor: 'primary',
         stateKey: 'primaryKeys'
       },
       fk: {
         label: 'Foreign Keys',
         icon: LinkIcon,
-        color: 'primary.main',
+        color: '#9c27b0',
+        borderColor: '#9c27b0',
+        backgroundColor: 'rgba(156, 39, 176, 0.08)',
+        buttonColor: 'primary',
         stateKey: 'foreignKeys'
       },
       unique: {
         label: 'Unique Constraints',
         icon: CheckCircleOutlineIcon,
-        color: 'primary.main',
+        color: '#2e7d32',
+        borderColor: '#2e7d32',
+        backgroundColor: 'rgba(46, 125, 50, 0.08)',
+        buttonColor: 'primary',
         stateKey: 'uniqueConstraints'
       },
       check: {
         label: 'Check Constraints',
         icon: RuleIcon,
-        color: 'primary.main',
+        color: '#ed6c02',
+        borderColor: '#ed6c02',
+        backgroundColor: 'rgba(237, 108, 2, 0.08)',
+        buttonColor: 'primary',
         stateKey: 'checkConstraints'
       },
       triggers: {
         label: 'Triggers',
         icon: BoltIcon,
-        color: 'info.main',
+        color: '#d32f2f',
+        borderColor: '#d32f2f',
+        backgroundColor: 'rgba(211, 47, 47, 0.08)',
+        buttonColor: 'primary',
         stateKey: 'triggers'
       },
       indexes: {
         label: 'Indexes',
         icon: StorageIcon,
-        color: 'primary.main',
+        color: '#00897b',
+        borderColor: '#00897b',
+        backgroundColor: 'rgba(0, 137, 123, 0.12)',
+        buttonColor: 'primary',
         stateKey: 'indexes'
       }
     };
@@ -663,13 +681,14 @@ const WorkflowDetailPage = () => {
         variant="outlined"
         sx={{
           mb: 2,
-          borderColor: hasData ? 'success.main' : 'grey.300',
-          borderWidth: hasData ? 2 : 1
+          borderColor: hasData ? config.borderColor : 'grey.300',
+          borderWidth: hasData ? 2 : 1,
+          backgroundColor: config.backgroundColor
         }}
       >
-        <CardContent>
+        <CardContent sx={{ pt: 1.5, px: 2, pb: 0 }}>
           {/* Header */}
-          <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+          <Box display="flex" alignItems="center" justifyContent="space-between" mb={0}>
             <Box display="flex" alignItems="center" gap={1}>
               <Icon sx={{ color: config.color, fontSize: 28 }} />
               <Typography variant="subtitle1" fontWeight="bold">
@@ -688,6 +707,8 @@ const WorkflowDetailPage = () => {
                 <Button
                   size="small"
                   variant="outlined"
+                  color={config.buttonColor}
+                  sx={{ borderColor: config.borderColor, color: config.color }}
                   startIcon={<ExpandMoreIcon sx={{ transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: '0.3s' }} />}
                   onClick={() => handleToggleConstraint(tableName, type)}
                   disabled={constraintData.count === 0}
@@ -698,9 +719,10 @@ const WorkflowDetailPage = () => {
                 <Button
                   size="small"
                   variant="contained"
+                  color={config.buttonColor}
                   onClick={() => onCheck(type)}
                   disabled={isLoading}
-                  startIcon={isLoading ? <CircularProgress size={16} /> : null}
+                  startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : null}
                 >
                   Check
                 </Button>
@@ -1166,9 +1188,9 @@ const WorkflowDetailPage = () => {
                         <Table size="small">
                           <TableHead>
                             <TableRow>
-                              <TableCell>Column Name</TableCell>
-                              <TableCell>PII</TableCell>
-                              <TableCell>PII Attribute</TableCell>
+                              <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Column Name</TableCell>
+                              <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>PII</TableCell>
+                              <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>PII Attribute</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>

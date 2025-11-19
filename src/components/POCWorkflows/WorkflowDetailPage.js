@@ -1034,10 +1034,10 @@ const WorkflowDetailPage = () => {
                           <Table size="small">
                             <TableHead>
                               <TableRow>
-                                <TableCell>Source Column</TableCell>
-                                <TableCell>Destination Column</TableCell>
-                                <TableCell>PII</TableCell>
-                                <TableCell>PII Attribute</TableCell>
+                                <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Source Column</TableCell>
+                                <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Destination Column</TableCell>
+                                <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>PII</TableCell>
+                                <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>PII Attribute</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>

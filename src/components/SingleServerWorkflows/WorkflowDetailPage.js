@@ -953,14 +953,6 @@ const WorkflowDetailPage = () => {
             <Typography variant="subtitle1" fontWeight="bold">
               Table: {mapping.destination_table}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Check database constraints for the table
-            </Typography>
-            {checks?.lastChecked && (
-              <Typography variant="caption" color="text.secondary">
-                Last checked: {new Date(checks.lastChecked).toLocaleString()}
-              </Typography>
-            )}
           </Box>
           <Button
             variant="contained"
@@ -1274,9 +1266,9 @@ const WorkflowDetailPage = () => {
           {/* Sub-Tab 0: Column Mapping */}
           {previewSubTab === 0 && (
             <Box>
-              <Typography variant="h6" gutterBottom>
+              {/* <Typography variant="h6" gutterBottom>
                 Column Mappings
-              </Typography>
+              </Typography> */}
 
               {!workflow.column_mappings || workflow.column_mappings.length === 0 ? (
                 <Alert severity="info" sx={{ mt: 2 }}>
@@ -1284,28 +1276,33 @@ const WorkflowDetailPage = () => {
                 </Alert>
               ) : (
                 <Box sx={{ mt: 2 }}>
-                  <Box mb={2}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      {workflow.schema_name}.{workflow.table_name}
+                  <Box display="flex" alignItems="center" gap={2} mb={2}>
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      Table: {workflow.schema_name}.{workflow.table_name}
                     </Typography>
                     <Chip
                       label={`${workflow.column_mappings.filter(col => col.is_pii).length} PII columns`}
                       size="small"
-                      color="primary"
+                      color="success"
                     />
                   </Box>
                   <TableContainer component={Paper}>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Column Name</TableCell>
-                          <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>PII</TableCell>
-                          <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>PII Attribute</TableCell>
+                          <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff' }}>Column Name</TableCell>
+                          <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff' }}>PII</TableCell>
+                          <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff' }}>PII Attribute</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {workflow.column_mappings.map((col, colIndex) => (
-                          <TableRow key={colIndex}>
+                          <TableRow
+                            key={colIndex}
+                            sx={{
+                              backgroundColor: colIndex % 2 === 0 ? '#f9f9f9' : 'inherit'
+                            }}
+                          >
                             <TableCell>{col.column_name}</TableCell>
                             <TableCell>
                               {col.is_pii ? (
@@ -1422,13 +1419,13 @@ const WorkflowDetailPage = () => {
                             <Table size="small">
                               <TableHead>
                                 <TableRow>
-                                  <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold', width: '25%' }}>Column Name</TableCell>
-                                  <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold', width: '37.5%' }}>Original Value</TableCell>
-                                  <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold', width: '37.5%' }}>Masked Value</TableCell>
+                                  <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', width: '25%' }}>Column Name</TableCell>
+                                  <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', width: '37.5%' }}>Original Value</TableCell>
+                                  <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', width: '37.5%' }}>Masked Value</TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {allColumns.map((columnName) => {
+                                {allColumns.map((columnName, colIndex) => {
                                   const isPII = piiColumns.includes(columnName);
                                   const originalValue = result.original[columnName];
                                   const maskedValue = result.masked[columnName];
@@ -1438,7 +1435,7 @@ const WorkflowDetailPage = () => {
                                     <TableRow
                                       key={columnName}
                                       sx={{
-                                        backgroundColor: isPII ? '#fff3e0' : 'inherit',
+                                        backgroundColor: isPII ? '#fff3e0' : (colIndex % 2 === 0 ? '#f9f9f9' : '#ffffff'),
                                       }}
                                     >
                                       <TableCell>

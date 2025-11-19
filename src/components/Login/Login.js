@@ -55,7 +55,7 @@ const Login = () => {
       saveAuthData(token, user);
 
       // Redirect to dashboard
-      navigate('/dashboard');
+      navigate('/single-server/dashboard');
     } catch (error) {
       console.error('❌ LOGIN ERROR:', error);
       console.error('   Error type:', error.constructor.name);

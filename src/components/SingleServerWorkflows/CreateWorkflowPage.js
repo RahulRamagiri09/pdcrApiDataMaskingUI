@@ -37,7 +37,6 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { singleServerConnectionsAPI, singleServerWorkflowsAPI, singleServerMaskingAPI } from '../../services/api';
-import Navbar from '../Navbar/Navbar';
 import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -811,14 +810,9 @@ const CreateWorkflowPage = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div className="h-screen flex flex-col bg-gray-50">
-        <Navbar user={user} />
-        <div className="flex-1 overflow-auto">
-          <Box sx={{ maxWidth: '1440px', width: '100%', mx: 'auto', mt: 3, mb: 3, px: 3 }}>
-            {createWorkflowContent()}
-          </Box>
-        </div>
-      </div>
+      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 3 }}>
+        {createWorkflowContent()}
+      </Box>
     </ThemeProvider>
   );
 };

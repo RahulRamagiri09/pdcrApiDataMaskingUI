@@ -23,7 +23,6 @@ import {
 import { DataGrid } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import { singleServerWorkflowsAPI } from '../../services/api';
-import Navbar from '../Navbar/Navbar';
 import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -200,7 +199,7 @@ const SingleServerWorkflowsPage = () => {
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Box>
             <Typography variant="h4" gutterBottom>
-              Single Server Workflows
+              Server Workflows
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
               Create and manage in-place PII masking workflows (same database/schema/table)
@@ -230,11 +229,11 @@ const SingleServerWorkflowsPage = () => {
               </Typography>
             </Box>
 
-            <Box sx={{ height: 400, width: '100%' }}>
+            <Box sx={{ height: 600, width: '100%' }}>
               <DataGrid
                 rows={workflows}
                 columns={columns}
-                pageSize={10}
+                pageSize={25}
                 rowsPerPageOptions={[10, 25, 50]}
                 disableSelectionOnClick
                 getRowId={(row) => row.id}
@@ -247,17 +246,12 @@ const SingleServerWorkflowsPage = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      <Navbar user={user} />
-      <div className="flex-1 overflow-auto">
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <Box sx={{ maxWidth: 'xl', mx: 'auto', mt: 3, mb: 3, px: 3 }}>
-            {workflowsContent()}
-          </Box>
-        </ThemeProvider>
-      </div>
-    </div>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 3 }}>
+        {workflowsContent()}
+      </Box>
+    </ThemeProvider>
   );
 };
 

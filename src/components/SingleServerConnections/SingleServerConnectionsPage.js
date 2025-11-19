@@ -25,7 +25,6 @@ import {
 import { DataGrid } from '@mui/x-data-grid';
 import { singleServerConnectionsAPI } from '../../services/api';
 import CreateConnectionDialog from './CreateConnectionDialog';
-import Navbar from '../Navbar/Navbar';
 import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -210,7 +209,7 @@ const SingleServerConnectionsPage = () => {
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Box>
             <Typography variant="h4" gutterBottom>
-              Single Server Connections
+              Server Connections
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
               Manage connections for in-place PII masking workflows (same database/schema/table)
@@ -240,11 +239,11 @@ const SingleServerConnectionsPage = () => {
               </Typography>
             </Box>
 
-            <Box sx={{ height: 400, width: '100%' }}>
+            <Box sx={{ height: 600, width: '100%' }}>
               <DataGrid
                 rows={connections}
                 columns={columns}
-                pageSize={10}
+                pageSize={25}
                 rowsPerPageOptions={[10, 25, 50]}
                 disableSelectionOnClick
                 getRowId={(row) => row.id}
@@ -291,17 +290,12 @@ const SingleServerConnectionsPage = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      <Navbar user={user} />
-      <div className="flex-1 overflow-auto">
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <Box sx={{ maxWidth: 'xl', mx: 'auto', mt: 3, mb: 3, px: 3 }}>
-            {connectionsContent()}
-          </Box>
-        </ThemeProvider>
-      </div>
-    </div>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 3 }}>
+        {connectionsContent()}
+      </Box>
+    </ThemeProvider>
   );
 };
 

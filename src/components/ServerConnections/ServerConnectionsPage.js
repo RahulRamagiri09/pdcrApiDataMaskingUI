@@ -23,17 +23,17 @@ import {
   Storage as StorageIcon,
 } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
-import { singleServerConnectionsAPI } from '../../services/api';
+import { serverConnectionsAPI } from '../../services/api';
 import CreateConnectionDialog from './CreateConnectionDialog';
 import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
-// Create Material-UI theme with blue/orange accent for single-server
+// Create Material-UI theme with blue/orange accent for server
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#0b2677', // Blue theme for single-server
+      main: '#0b2677', // Blue theme for server
     },
     secondary: {
       main: '#ed6c02', // Orange accent
@@ -41,7 +41,7 @@ const theme = createTheme({
   },
 });
 
-const SingleServerConnectionsPage = () => {
+const ServerConnectionsPage = () => {
   const user = getCurrentUser();
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +57,7 @@ const SingleServerConnectionsPage = () => {
   const loadConnections = async () => {
     try {
       setLoading(true);
-      const response = await singleServerConnectionsAPI.getAll();
+      const response = await serverConnectionsAPI.getAll();
 
       // Handle different response structures
       const data = response.data?.data || response.data || [];
@@ -77,7 +77,7 @@ const SingleServerConnectionsPage = () => {
 
   const handleConfirmDelete = async () => {
     try {
-      await singleServerConnectionsAPI.delete(connectionToDelete.id);
+      await serverConnectionsAPI.delete(connectionToDelete.id);
       setConnections(connections.filter(conn => conn.id !== connectionToDelete.id));
       setDeleteDialogOpen(false);
       setConnectionToDelete(null);
@@ -299,4 +299,4 @@ const SingleServerConnectionsPage = () => {
   );
 };
 
-export default SingleServerConnectionsPage;
+export default ServerConnectionsPage;

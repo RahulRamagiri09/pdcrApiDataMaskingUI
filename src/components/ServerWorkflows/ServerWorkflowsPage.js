@@ -22,7 +22,7 @@ import {
 } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
-import { singleServerWorkflowsAPI } from '../../services/api';
+import { serverWorkflowsAPI } from '../../services/api';
 import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -39,7 +39,7 @@ const theme = createTheme({
   },
 });
 
-const SingleServerWorkflowsPage = () => {
+const ServerWorkflowsPage = () => {
   const navigate = useNavigate();
   const user = getCurrentUser();
   const [workflows, setWorkflows] = useState([]);
@@ -53,7 +53,7 @@ const SingleServerWorkflowsPage = () => {
   const loadWorkflows = async () => {
     try {
       setLoading(true);
-      const response = await singleServerWorkflowsAPI.getAll();
+      const response = await serverWorkflowsAPI.getAll();
 
       // Handle different response structures safely
       const data = response.data?.data || response.data || [];
@@ -69,7 +69,7 @@ const SingleServerWorkflowsPage = () => {
   const handleDeleteWorkflow = async (workflowId) => {
     if (window.confirm('Are you sure you want to delete this workflow?')) {
       try {
-        await singleServerWorkflowsAPI.delete(workflowId);
+        await serverWorkflowsAPI.delete(workflowId);
         setWorkflows(workflows.filter(workflow => workflow.id !== workflowId));
       } catch (err) {
         setError(err.message);
@@ -166,7 +166,7 @@ const SingleServerWorkflowsPage = () => {
         <Box>
           <IconButton
             size="small"
-            onClick={() => navigate(`/single-server/workflows/${params.row.id}`)}
+            onClick={() => navigate(`/server/workflows/${params.row.id}`)}
             color="primary"
             title="View Details"
           >
@@ -208,7 +208,7 @@ const SingleServerWorkflowsPage = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => navigate('/single-server/workflows/create')}
+            onClick={() => navigate('/server/workflows/create')}
           >
             Create Workflow
           </Button>
@@ -255,4 +255,4 @@ const SingleServerWorkflowsPage = () => {
   );
 };
 
-export default SingleServerWorkflowsPage;
+export default ServerWorkflowsPage;

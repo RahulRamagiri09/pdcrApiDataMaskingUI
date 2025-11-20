@@ -30,29 +30,25 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-// import Grid from '@mui/material/Unstable_Grid';
 import Grid from '@mui/material/Grid'
 import {
   ArrowBack as ArrowBackIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
   Preview as PreviewIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
-import { connectionsAPI, workflowsAPI, maskingAPI } from '../../services/api';
-import Navbar from '../Navbar/Navbar';
+import { serverConnectionsAPI, serverWorkflowsAPI, serverMaskingAPI } from '../../services/api';
 import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
-// Create Material-UI theme
+// Create Material-UI theme with blue accent for server
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#0b2677',
+      main: '#0b2677', // Blue theme
     },
     secondary: {
-      main: '#0b2677',
+      main: '#ed6c02', // Orange accent
     },
   },
 });
@@ -79,26 +75,16 @@ const CreateWorkflowPage = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    source_connection_id: '',
-    destination_connection_id: '',
-    table_mappings: []
-  });
-
-  const [currentTableMapping, setCurrentTableMapping] = useState({
-    source_schema: '',
-    source_table: '',
-    destination_schema: '',
-    destination_table: '',
+    connection_id: '',
+    schema_name: '',
+    table_name: '',
     column_mappings: []
   });
 
-  const [sourceSchemas, setSourceSchemas] = useState([]);
-  const [destinationSchemas, setDestinationSchemas] = useState([]);
-  const [selectedSourceSchema, setSelectedSourceSchema] = useState('');
-  const [selectedDestinationSchema, setSelectedDestinationSchema] = useState('');
-  const [sourceTables, setSourceTables] = useState([]);
-  const [destinationTables, setDestinationTables] = useState([]);
-  const [sourceColumns, setSourceColumns] = useState([]);
+  const [schemas, setSchemas] = useState([]);
+  const [selectedSchema, setSelectedSchema] = useState('');
+  const [tables, setTables] = useState([]);
+  const [columns, setColumns] = useState([]);
 
   const steps = ['Basic Info', 'Select Tables', 'Configure Mapping', 'Review & Create'];
 
@@ -135,7 +121,7 @@ const CreateWorkflowPage = () => {
 
   // Get filtered PII attributes based on column data type
   const getFilteredPiiAttributes = (columnName) => {
-    const columnInfo = sourceColumns.find(col => col.name === columnName);
+    const columnInfo = columns.find(col => col.name === columnName);
     if (!columnInfo || !columnInfo.data_type) {
       return piiAttributes; // Fallback to all if no data type info
     }
@@ -157,8 +143,8 @@ const CreateWorkflowPage = () => {
     try {
       setLoading(true);
       const [connectionsRes, piiRes] = await Promise.all([
-        connectionsAPI.getAll(),
-        workflowsAPI.getPiiAttributes()
+        serverConnectionsAPI.getAll(),
+        serverWorkflowsAPI.getPiiAttributes()
       ]);
 
       // Handle different response structures safely
@@ -228,67 +214,64 @@ const CreateWorkflowPage = () => {
   const loadWorkflowForEdit = async (id) => {
     try {
       setLoading(true);
-      const response = await workflowsAPI.getById(id);
+      const response = await serverWorkflowsAPI.getById(id);
       const workflowData = response.data?.data || response.data;
+
+      // Handle both old and new payload structures
+      // New structure: { table_mappings: [{ table_name, schema_name, column_mappings }] }
+      // Old structure: { schema_name, table_name, column_mappings }
+      let schemaName, tableName, columnMappings;
+
+      if (workflowData.table_mappings && Array.isArray(workflowData.table_mappings) && workflowData.table_mappings.length > 0) {
+        // New structure with table_mappings array
+        const firstTableMapping = workflowData.table_mappings[0];
+        schemaName = firstTableMapping.schema_name;
+        tableName = firstTableMapping.table_name;
+        columnMappings = firstTableMapping.column_mappings || [];
+      } else {
+        // Old structure with flat fields
+        schemaName = workflowData.schema_name;
+        tableName = workflowData.table_name;
+        columnMappings = workflowData.column_mappings || [];
+      }
 
       // Populate formData with existing workflow
       setFormData({
         name: workflowData.name,
         description: workflowData.description,
-        source_connection_id: workflowData.source_connection_id,
-        destination_connection_id: workflowData.destination_connection_id,
-        table_mappings: workflowData.table_mappings || []
+        connection_id: workflowData.connection_id,
+        schema_name: schemaName,
+        table_name: tableName,
+        column_mappings: columnMappings.map(col => ({
+          ...col,
+          pii_attribute: col.pii_attribute || '' // Convert null/undefined to empty string for placeholder
+        }))
       });
 
-      // If there's at least one table mapping, populate current table mapping
-      if (workflowData.table_mappings && workflowData.table_mappings.length > 0) {
-        const firstMapping = workflowData.table_mappings[0];
+      setSelectedSchema(schemaName);
 
-        // Extract schema from schema-qualified table names (e.g., "dbo.Users_sample_pp")
-        const [sourceSchema, sourceTable] = firstMapping.source_table.split('.');
-        const [destSchema, destTable] = firstMapping.destination_table.split('.');
+      // Load schemas for dropdown
+      await loadSchemas(workflowData.connection_id);
 
-        setSelectedSourceSchema(sourceSchema);
-        setSelectedDestinationSchema(destSchema);
+      // Load tables for selected schema
+      await loadTablesBySchema(schemaName, workflowData.connection_id);
 
-        // Load schemas for dropdowns - pass connection IDs directly
-        await Promise.all([
-          loadSourceSchemas(workflowData.source_connection_id),
-          loadDestinationSchemas(workflowData.destination_connection_id)
-        ]);
-
-        // Load tables for selected schemas - pass connection IDs directly
-        await Promise.all([
-          loadSourceTablesBySchema(sourceSchema, workflowData.source_connection_id),
-          loadDestinationTablesBySchema(destSchema, workflowData.destination_connection_id)
-        ]);
-
-        // Set current table mapping (without schema-qualified names for editing)
-        setCurrentTableMapping({
-          source_schema: sourceSchema,
-          source_table: sourceTable,
-          destination_schema: destSchema,
-          destination_table: destTable,
-          column_mappings: firstMapping.column_mappings || []
-        });
-
-        // Load source columns for display - fetch actual data types from database
-        try {
-          const columnsResponse = await connectionsAPI.getSourceTableColumns(
-            workflowData.source_connection_id,
-            sourceSchema,
-            sourceTable
-          );
-          const columnsData = columnsResponse.data?.data || columnsResponse.data || [];
-          setSourceColumns(Array.isArray(columnsData) ? columnsData : []);
-        } catch (err) {
-          console.error('Failed to load column types:', err);
-          // Fallback to stored data with varchar default
-          setSourceColumns(firstMapping.column_mappings.map(col => ({
-            name: col.source_column,
-            data_type: 'varchar'
-          })));
-        }
+      // Load columns for display - fetch actual data types from database
+      try {
+        const columnsResponse = await serverConnectionsAPI.getTableColumns(
+          workflowData.connection_id,
+          schemaName,
+          tableName
+        );
+        const columnsData = columnsResponse.data?.data || columnsResponse.data || [];
+        setColumns(Array.isArray(columnsData) ? columnsData : []);
+      } catch (err) {
+        console.error('Failed to load column types:', err);
+        // Fallback to stored data with varchar default
+        setColumns(columnMappings.map(col => ({
+          name: col.column_name,
+          data_type: 'varchar'
+        })));
       }
     } catch (err) {
       setError(err.message || 'Failed to load workflow');
@@ -309,60 +292,34 @@ const CreateWorkflowPage = () => {
     try {
       if (activeStep === 0) {
         // Validate basic info
-        if (!formData.name || !formData.source_connection_id || !formData.destination_connection_id) {
+        if (!formData.name || !formData.connection_id) {
           setError('Please fill in all required fields');
           return;
         }
-        if (formData.source_connection_id === formData.destination_connection_id) {
-          setError('Source and destination connections must be different');
-          return;
-        }
-        // Load schemas for both source and destination connections
-        await Promise.all([
-          loadSourceSchemas(formData.source_connection_id),
-          loadDestinationSchemas(formData.destination_connection_id)
-        ]);
+        // Load schemas for the selected connection
+        await loadSchemas(formData.connection_id);
       } else if (activeStep === 1) {
         // Validate schema and table selection
-        if (!selectedSourceSchema || !selectedDestinationSchema) {
-          setError('Please select both source and destination schemas');
+        if (!selectedSchema) {
+          setError('Please select a schema');
           return;
         }
-        if (!currentTableMapping.source_table || !currentTableMapping.destination_table) {
-          setError('Please select both source and destination tables');
+        if (!formData.table_name) {
+          setError('Please select a table');
           return;
         }
-        await loadSourceColumns();
+        // Update formData with schema
+        setFormData(prev => ({
+          ...prev,
+          schema_name: selectedSchema
+        }));
+        await loadColumns();
       } else if (activeStep === 2) {
         // Validate column mappings
-        if (currentTableMapping.column_mappings.length === 0) {
+        if (formData.column_mappings.length === 0) {
           setError('Please configure at least one column mapping');
           return;
         }
-        // Add or update table mapping with schema-qualified table names
-        const mappingToSave = {
-          ...currentTableMapping,
-          source_table: `${currentTableMapping.source_schema}.${currentTableMapping.source_table}`,
-          destination_table: `${currentTableMapping.destination_schema}.${currentTableMapping.destination_table}`
-        };
-
-        setFormData(prev => {
-          if (isEditMode) {
-            // In edit mode, replace the first table mapping
-            const updatedMappings = [...prev.table_mappings];
-            updatedMappings[0] = mappingToSave;
-            return {
-              ...prev,
-              table_mappings: updatedMappings
-            };
-          } else {
-            // In create mode, add the new table mapping
-            return {
-              ...prev,
-              table_mappings: [...prev.table_mappings, mappingToSave]
-            };
-          }
-        });
       }
 
       setActiveStep(prev => prev + 1);
@@ -376,115 +333,78 @@ const CreateWorkflowPage = () => {
     setError(null);
   };
 
-  const loadSourceSchemas = async (connectionId) => {
+  const loadSchemas = async (connectionId) => {
     try {
       setLoading(true);
-      const connId = connectionId || formData.source_connection_id;
-      const response = await connectionsAPI.getSourceSchemas(connId);
+      const connId = connectionId || formData.connection_id;
+      const response = await serverConnectionsAPI.getSchemas(connId);
 
       // Handle different response structures safely
       const data = response.data?.data || response.data || [];
-      setSourceSchemas(Array.isArray(data) ? data : []);
+      setSchemas(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message);
-      setSourceSchemas([]);
+      setSchemas([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadDestinationSchemas = async (connectionId) => {
+  const loadTablesBySchema = async (schemaName, connectionId) => {
     try {
       setLoading(true);
-      const connId = connectionId || formData.destination_connection_id;
-      const response = await connectionsAPI.getDestinationSchemas(connId);
-
-      // Handle different response structures safely
-      const data = response.data?.data || response.data || [];
-      setDestinationSchemas(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message);
-      setDestinationSchemas([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadSourceTablesBySchema = async (schemaName, connectionId) => {
-    try {
-      setLoading(true);
-      const connId = connectionId || formData.source_connection_id;
-      const response = await connectionsAPI.getSourceTablesBySchema(
+      const connId = connectionId || formData.connection_id;
+      const response = await serverConnectionsAPI.getTablesBySchema(
         connId,
         schemaName
       );
 
       // Handle different response structures safely
       const data = response.data?.data || response.data || [];
-      setSourceTables(Array.isArray(data) ? data : []);
+      setTables(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message);
-      setSourceTables([]);
+      setTables([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadDestinationTablesBySchema = async (schemaName, connectionId) => {
+  const loadColumns = async () => {
     try {
       setLoading(true);
-      const connId = connectionId || formData.destination_connection_id;
-      const response = await connectionsAPI.getDestinationTablesBySchema(
-        connId,
-        schemaName
+      const response = await serverConnectionsAPI.getTableColumns(
+        formData.connection_id,
+        selectedSchema,
+        formData.table_name
       );
 
       // Handle different response structures safely
       const data = response.data?.data || response.data || [];
-      setDestinationTables(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message);
-      setDestinationTables([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadSourceColumns = async () => {
-    try {
-      setLoading(true);
-      const response = await connectionsAPI.getSourceTableColumns(
-        formData.source_connection_id,
-        currentTableMapping.source_schema,
-        currentTableMapping.source_table
-      );
-
-      // Handle different response structures safely
-      const data = response.data?.data || response.data || [];
-      setSourceColumns(Array.isArray(data) ? data : []);
+      setColumns(Array.isArray(data) ? data : []);
 
       // Initialize column mappings
       const columnMappings = data.map(col => ({
-        source_column: col.name,
-        destination_column: col.name,
+        column_name: col.name,
+        data_type: col.data_type,
         is_pii: false,
         pii_attribute: ''
       }));
 
-      setCurrentTableMapping(prev => ({
+      setFormData(prev => ({
         ...prev,
         column_mappings: columnMappings
       }));
     } catch (err) {
       setError(err.message);
-      setSourceColumns([]);
+      setColumns([]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleColumnMappingChange = (index, field, value) => {
-    setCurrentTableMapping(prev => ({
+    setFormData(prev => ({
       ...prev,
       column_mappings: prev.column_mappings.map((mapping, i) => {
         if (i === index) {
@@ -502,7 +422,7 @@ const CreateWorkflowPage = () => {
 
   const handlePreviewSample = async (attribute) => {
     try {
-      const response = await maskingAPI.generateSampleData(attribute, 5);
+      const response = await serverMaskingAPI.generateSampleData(attribute, 5);
 
       // Handle different response structures safely
       const samples = response.data?.data?.samples || response.data?.samples || [];
@@ -519,12 +439,32 @@ const CreateWorkflowPage = () => {
   const handleCreateWorkflow = async () => {
     try {
       setLoading(true);
+
+      // Transform payload to match API expectations
+      // API expects: { name, description, connection_id, table_mappings: [{ table_name, schema_name, column_mappings }] }
+      const transformedPayload = {
+        name: formData.name,
+        description: formData.description,
+        connection_id: formData.connection_id,
+        table_mappings: [
+          {
+            table_name: formData.table_name,
+            schema_name: formData.schema_name,
+            column_mappings: formData.column_mappings.map(col => ({
+              column_name: col.column_name,
+              is_pii: col.is_pii,
+              pii_attribute: col.is_pii && col.pii_attribute ? col.pii_attribute : null
+            }))
+          }
+        ]
+      };
+
       if (isEditMode) {
-        await workflowsAPI.update(workflowId, formData);
+        await serverWorkflowsAPI.update(workflowId, transformedPayload);
       } else {
-        await workflowsAPI.create(formData);
+        await serverWorkflowsAPI.create(transformedPayload);
       }
-      navigate('/workflows');
+      navigate('/server/workflows');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -556,29 +496,13 @@ const CreateWorkflowPage = () => {
                 rows={3}
               />
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
+            <Grid size={12}>
               <FormControl fullWidth required>
-                <InputLabel>Source Connection</InputLabel>
+                <InputLabel>Connection</InputLabel>
                 <Select
-                  value={formData.source_connection_id}
-                  onChange={handleInputChange('source_connection_id')}
-                  label="Source Connection"
-                >
-                  {connections.map((conn) => (
-                    <MenuItem key={conn.id} value={conn.id}>
-                      {conn.name} ({conn.server}/{conn.database})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth required>
-                <InputLabel>Destination Connection</InputLabel>
-                <Select
-                  value={formData.destination_connection_id}
-                  onChange={handleInputChange('destination_connection_id')}
-                  label="Destination Connection"
+                  value={formData.connection_id}
+                  onChange={handleInputChange('connection_id')}
+                  label="Connection"
                 >
                   {connections.map((conn) => (
                     <MenuItem key={conn.id} value={conn.id}>
@@ -594,111 +518,66 @@ const CreateWorkflowPage = () => {
       case 1:
         return (
           <Grid container spacing={3}>
-            {/* Source Schema and Table */}
+            {/* Schema and Table */}
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth required>
-                <InputLabel>Source Schema</InputLabel>
+                <InputLabel>Schema</InputLabel>
                 <Select
-                  value={selectedSourceSchema}
+                  value={selectedSchema}
                   onChange={(e) => {
                     const schema = e.target.value;
-                    setSelectedSourceSchema(schema);
-                    setCurrentTableMapping(prev => ({
+                    setSelectedSchema(schema);
+                    setFormData(prev => ({
                       ...prev,
-                      source_schema: schema,
-                      source_table: ''
+                      schema_name: schema,
+                      table_name: ''
                     }));
-                    setSourceTables([]);
+                    setTables([]);
                     if (schema) {
-                      loadSourceTablesBySchema(schema, formData.source_connection_id);
+                      loadTablesBySchema(schema, formData.connection_id);
                     }
                   }}
-                  label="Source Schema"
+                  label="Schema"
                 >
-                  {sourceSchemas.map((schema) => (
-                    <MenuItem key={schema} value={schema}>
-                      {schema}
-                    </MenuItem>
-                  ))}
+                  {schemas.map((schema) => {
+                    const schemaName = typeof schema === 'object' ? schema.name : schema;
+                    return (
+                      <MenuItem key={schemaName} value={schemaName}>
+                        {schemaName}
+                      </MenuItem>
+                    );
+                  })}
                 </Select>
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth required disabled={!selectedSourceSchema}>
-                <InputLabel>Source Table</InputLabel>
+              <FormControl fullWidth required disabled={!selectedSchema}>
+                <InputLabel>Table</InputLabel>
                 <Select
-                  value={currentTableMapping.source_table}
+                  value={formData.table_name}
                   onChange={(e) => {
-                    setCurrentTableMapping(prev => ({
+                    setFormData(prev => ({
                       ...prev,
-                      source_table: e.target.value
+                      table_name: e.target.value
                     }));
                   }}
-                  label="Source Table"
+                  label="Table"
                 >
-                  {sourceTables.map((table) => (
-                    <MenuItem key={table} value={table}>
-                      {table}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {/* Destination Schema and Table */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth required>
-                <InputLabel>Destination Schema</InputLabel>
-                <Select
-                  value={selectedDestinationSchema}
-                  onChange={(e) => {
-                    const schema = e.target.value;
-                    setSelectedDestinationSchema(schema);
-                    setCurrentTableMapping(prev => ({
-                      ...prev,
-                      destination_schema: schema,
-                      destination_table: ''
-                    }));
-                    setDestinationTables([]);
-                    if (schema) {
-                      loadDestinationTablesBySchema(schema, formData.destination_connection_id);
-                    }
-                  }}
-                  label="Destination Schema"
-                >
-                  {destinationSchemas.map((schema) => (
-                    <MenuItem key={schema} value={schema}>
-                      {schema}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth required disabled={!selectedDestinationSchema}>
-                <InputLabel>Destination Table</InputLabel>
-                <Select
-                  value={currentTableMapping.destination_table}
-                  onChange={(e) => {
-                    setCurrentTableMapping(prev => ({
-                      ...prev,
-                      destination_table: e.target.value
-                    }));
-                  }}
-                  label="Destination Table"
-                >
-                  {destinationTables.map((table) => (
-                    <MenuItem key={table} value={table}>
-                      {table}
-                    </MenuItem>
-                  ))}
+                  {tables.map((table) => {
+                    const tableName = typeof table === 'object' ? table.name : table;
+                    return (
+                      <MenuItem key={tableName} value={tableName}>
+                        {tableName}
+                      </MenuItem>
+                    );
+                  })}
                 </Select>
               </FormControl>
             </Grid>
 
             <Grid size={12}>
               <Typography variant="body2" color="text.secondary">
-                First select schemas for source and destination, then select the tables to copy data from and to.
+                Select the schema and table where PII masking will be performed in-place (same database/schema/table).
               </Typography>
             </Grid>
           </Grid>
@@ -708,36 +587,28 @@ const CreateWorkflowPage = () => {
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Configure Column Mappings for {currentTableMapping.source_table}
+              Configure Column Mappings for {formData.table_name}
             </Typography>
             <TableContainer component={Paper}>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Source Column</TableCell>
-                    <TableCell>Destination Column</TableCell>
-                    <TableCell>Data Type</TableCell>
-                    <TableCell>Is PII</TableCell>
-                    <TableCell>PII Attribute</TableCell>
-                    <TableCell>Preview</TableCell>
+                    <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Column Name</TableCell>
+                    <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Data Type</TableCell>
+                    <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Is PII</TableCell>
+                    <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>PII Attribute</TableCell>
+                    <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Preview</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {currentTableMapping.column_mappings.map((mapping, index) => {
-                    const columnInfo = sourceColumns.find(col => col.name === mapping.source_column);
+                  {formData.column_mappings.map((mapping, index) => {
+                    const columnInfo = columns.find(col => col.name === mapping.column_name);
                     return (
                       <TableRow key={index}>
-                        <TableCell>{mapping.source_column}</TableCell>
-                        <TableCell>
-                          <TextField
-                            size="small"
-                            value={mapping.destination_column}
-                            onChange={(e) => handleColumnMappingChange(index, 'destination_column', e.target.value)}
-                          />
-                        </TableCell>
+                        <TableCell><strong>{mapping.column_name}</strong></TableCell>
                         <TableCell>
                           <Chip
-                            label={columnInfo?.data_type || 'Unknown'}
+                            label={columnInfo?.data_type || mapping.data_type || 'Unknown'}
                             size="small"
                             variant="outlined"
                           />
@@ -756,7 +627,7 @@ const CreateWorkflowPage = () => {
                               displayEmpty
                             >
                               <MenuItem value="">Select attribute</MenuItem>
-                              {getFilteredPiiAttributes(mapping.source_column).map((attr) => (
+                              {getFilteredPiiAttributes(mapping.column_name).map((attr) => (
                                 <MenuItem key={attr} value={attr}>
                                   {attr.replace(/_/g, ' ')}
                                 </MenuItem>
@@ -784,6 +655,9 @@ const CreateWorkflowPage = () => {
         );
 
       case 3:
+        const selectedConnection = connections.find(c => c.id === formData.connection_id);
+        const piiColumns = formData.column_mappings.filter(col => col.is_pii);
+
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
@@ -796,26 +670,28 @@ const CreateWorkflowPage = () => {
                 <Typography variant="body2">Description: {formData.description || 'No description'}</Typography>
               </Grid>
               <Grid size={12}>
-                <Typography variant="subtitle1">Connections</Typography>
+                <Typography variant="subtitle1">Connection</Typography>
                 <Typography variant="body2">
-                  Source: {connections.find(c => c.id === formData.source_connection_id)?.name}
-                </Typography>
-                <Typography variant="body2">
-                  Destination: {connections.find(c => c.id === formData.destination_connection_id)?.name}
+                  {selectedConnection?.name} ({selectedConnection?.server}/{selectedConnection?.database})
                 </Typography>
               </Grid>
               <Grid size={12}>
-                <Typography variant="subtitle1">Table Mappings</Typography>
-                {formData.table_mappings.map((mapping, index) => (
-                  <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                    <Typography variant="body2">
-                      {mapping.source_table} → {mapping.destination_table}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {mapping.column_mappings.filter(col => col.is_pii).length} PII columns configured
-                    </Typography>
-                  </Box>
-                ))}
+                <Typography variant="subtitle1">Table</Typography>
+                <Typography variant="body2">
+                  {formData.schema_name}.{formData.table_name}
+                </Typography>
+              </Grid>
+              <Grid size={12}>
+                <Typography variant="subtitle1">PII Columns ({piiColumns.length})</Typography>
+                <Box sx={{ mt: 1, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                  {piiColumns.map((col, index) => (
+                    <Box key={index} sx={{ mb: 1 }}>
+                      <Typography variant="body2">
+                        <strong>{col.column_name}</strong> ({col.data_type}) → <Chip label={col.pii_attribute} size="small" color="primary" />
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
               </Grid>
             </Grid>
           </Box>
@@ -838,17 +714,17 @@ const CreateWorkflowPage = () => {
     return (
       <Box>
         <Box display="flex" alignItems="center" mb={3}>
-          <IconButton onClick={() => navigate('/workflows')} sx={{ mr: 2 }}>
+          <IconButton onClick={() => navigate('/server/workflows')} sx={{ mr: 2 }}>
             <ArrowBackIcon />
           </IconButton>
           <Box>
             <Typography variant="h4" gutterBottom>
-              {isEditMode ? 'Edit Workflow' : 'Create New Workflow'}
+              {isEditMode ? 'Edit Single Server Workflow' : 'Create New Single Server Workflow'}
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
               {isEditMode
-                ? 'Modify your PII masking and data copy workflow configuration'
-                : 'Set up a new PII masking and data copy workflow'}
+                ? 'Modify your in-place PII masking workflow configuration'
+                : 'Set up a new in-place PII masking workflow (same database/schema/table)'}
             </Typography>
           </Box>
         </Box>
@@ -934,14 +810,9 @@ const CreateWorkflowPage = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div className="h-screen flex flex-col bg-gray-50">
-        <Navbar user={user} />
-        <div className="flex-1 overflow-auto">
-          <Box sx={{ maxWidth: '1440px', width: '100%', mx: 'auto', mt: 3, mb: 3, px: 3 }}>
-            {createWorkflowContent()}
-          </Box>
-        </div>
-      </div>
+      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 3 }}>
+        {createWorkflowContent()}
+      </Box>
     </ThemeProvider>
   );
 };

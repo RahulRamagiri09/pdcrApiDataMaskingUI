@@ -24,7 +24,7 @@ import {
   CheckCircle as CheckIcon,
   Error as ErrorIcon,
 } from '@mui/icons-material';
-import { connectionsAPI } from '../../services/api';
+import { serverConnectionsAPI } from '../../services/api';
 
 const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
   const [activeStep, setActiveStep] = useState(0);
@@ -85,7 +85,7 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
         port: formData.port ? parseInt(formData.port) : null,
       };
 
-      const response = await connectionsAPI.test(testData);
+      const response = await serverConnectionsAPI.test(testData);
 
       // Handle the actual API response structure
       const result = response.data;
@@ -118,7 +118,7 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
         port: formData.port ? parseInt(formData.port) : null,
       };
 
-      await connectionsAPI.create(connectionData);
+      await serverConnectionsAPI.create(connectionData);
       onConnectionCreated();
       handleClose();
     } catch (err) {
@@ -157,6 +157,7 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
                 value={formData.name}
                 onChange={handleInputChange('name')}
                 required
+                helperText="A unique name to identify this server connection"
               />
             </Grid>
             <Grid item xs={12}>
@@ -201,6 +202,7 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
                 value={formData.database}
                 onChange={handleInputChange('database')}
                 required
+                helperText="Database where PII masking will be performed in-place"
               />
             </Grid>
             <Grid item xs={6}>
@@ -237,7 +239,7 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
 
             {loading && (
               <Box my={3}>
-                <CircularProgress />
+                <CircularProgress color="primary" />
                 <Typography variant="body2" sx={{ mt: 2 }}>
                   Testing connection...
                 </Typography>
@@ -264,6 +266,11 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
                 <Typography variant="body2">
                   {testResult.message}
                 </Typography>
+                {testResult.connection_time_ms && (
+                  <Typography variant="caption" color="text.secondary">
+                    Connection time: {testResult.connection_time_ms}ms
+                  </Typography>
+                )}
               </Box>
             )}
           </Box>
@@ -279,19 +286,22 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
               Connection test passed. Ready to save connection.
             </Typography>
 
-            <Box mt={3}>
-              <Typography variant="subtitle1" gutterBottom>
-                Connection Details:
+            <Box mt={3} sx={{ textAlign: 'center', mx: 'auto', maxWidth: 500 }}>
+              <Typography variant="subtitle1" gutterBottom fontWeight="bold">
+                Connection Details
               </Typography>
-              <Typography variant="body2">Name: {formData.name}</Typography>
-              <Typography variant="body2">Server: {formData.server}</Typography>
-              <Typography variant="body2">Database: {formData.database}</Typography>
-              <Typography variant="body2">Username: {formData.username}</Typography>
+              <Box sx={{ textAlign: 'left', display: 'inline-block', mt: 2 }}>
+                <Typography variant="body2"><strong>Name:</strong> {formData.name}</Typography>
+                <Typography variant="body2"><strong>Type:</strong> {formData.connection_type}</Typography>
+                <Typography variant="body2"><strong>Server:</strong> {formData.server}</Typography>
+                <Typography variant="body2"><strong>Database:</strong> {formData.database}</Typography>
+                <Typography variant="body2"><strong>Username:</strong> {formData.username}</Typography>
+              </Box>
             </Box>
 
             {loading && (
               <Box my={3}>
-                <CircularProgress />
+                <CircularProgress color="primary" />
                 <Typography variant="body2" sx={{ mt: 2 }}>
                   Saving connection...
                 </Typography>
@@ -307,10 +317,10 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>Add New Database Connection</DialogTitle>
+      <DialogTitle>Add Single Server Connection</DialogTitle>
 
       <DialogContent>
-        <Box sx={{ mb: 3 }}>
+        <Box sx={{ mb: 3, mt: 2 }}>
           <Stepper activeStep={activeStep}>
             {steps.map((label) => (
               <Step key={label}>

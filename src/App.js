@@ -1,23 +1,18 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login/Login';
-import POCDashboard from './components/POCDashboard/POCDashboard';
-import POCConnectionsPage from './components/POCConnections/POCConnectionsPage';
-import POCWorkflowsPage from './components/POCWorkflows/POCWorkflowsPage';
-import CreateWorkflowPage from './components/POCWorkflows/CreateWorkflowPage';
-import WorkflowDetailPage from './components/POCWorkflows/WorkflowDetailPage';
 import RoleRegistration from './components/RoleRegistration/RoleRegistration';
 import UserRegistration from './components/UserRegistration/UserRegistration';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import MainLayout from './components/Layout/MainLayout';
 import { SidebarProvider } from './context/SidebarContext';
 
-// Single Server Components
-import SingleServerDashboard from './components/SingleServerDashboard/SingleServerDashboard';
-import SingleServerConnectionsPage from './components/SingleServerConnections/SingleServerConnectionsPage';
-import SingleServerWorkflowsPage from './components/SingleServerWorkflows/SingleServerWorkflowsPage';
-import CreateSingleServerWorkflowPage from './components/SingleServerWorkflows/CreateWorkflowPage';
-import SingleServerWorkflowDetailPage from './components/SingleServerWorkflows/WorkflowDetailPage';
+// Server Components
+import ServerDashboard from './components/ServerDashboard/ServerDashboard';
+import ServerConnectionsPage from './components/ServerConnections/ServerConnectionsPage';
+import ServerWorkflowsPage from './components/ServerWorkflows/ServerWorkflowsPage';
+import CreateServerWorkflowPage from './components/ServerWorkflows/CreateWorkflowPage';
+import ServerWorkflowDetailPage from './components/ServerWorkflows/WorkflowDetailPage';
 
 function App() {
   return (
@@ -28,113 +23,63 @@ function App() {
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
 
-            {/* Protected routes with copied POC components */}
+            {/* Server routes - Wrapped with MainLayout */}
             <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <POCDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/connections"
-              element={
-                <ProtectedRoute>
-                  <POCConnectionsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/workflows"
-              element={
-                <ProtectedRoute>
-                  <POCWorkflowsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/workflows/create"
-              element={
-                <ProtectedRoute>
-                  <CreateWorkflowPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/workflows/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <CreateWorkflowPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/workflows/:id"
-              element={
-                <ProtectedRoute>
-                  <WorkflowDetailPage />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Single Server routes - Wrapped with MainLayout */}
-            <Route
-              path="/single-server/dashboard"
+              path="/server/dashboard"
               element={
                 <ProtectedRoute>
                   <MainLayout>
-                    <SingleServerDashboard />
+                    <ServerDashboard />
                   </MainLayout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/single-server/connections"
+              path="/server/connections"
               element={
                 <ProtectedRoute>
                   <MainLayout>
-                    <SingleServerConnectionsPage />
+                    <ServerConnectionsPage />
                   </MainLayout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/single-server/workflows"
+              path="/server/workflows"
               element={
                 <ProtectedRoute>
                   <MainLayout>
-                    <SingleServerWorkflowsPage />
+                    <ServerWorkflowsPage />
                   </MainLayout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/single-server/workflows/create"
+              path="/server/workflows/create"
               element={
                 <ProtectedRoute>
                   <MainLayout>
-                    <CreateSingleServerWorkflowPage />
+                    <CreateServerWorkflowPage />
                   </MainLayout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/single-server/workflows/:id/edit"
+              path="/server/workflows/:id/edit"
               element={
                 <ProtectedRoute>
                   <MainLayout>
-                    <CreateSingleServerWorkflowPage />
+                    <CreateServerWorkflowPage />
                   </MainLayout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/single-server/workflows/:id"
+              path="/server/workflows/:id"
               element={
                 <ProtectedRoute>
                   <MainLayout>
-                    <SingleServerWorkflowDetailPage />
+                    <ServerWorkflowDetailPage />
                   </MainLayout>
                 </ProtectedRoute>
               }

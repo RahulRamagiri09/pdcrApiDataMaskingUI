@@ -132,10 +132,12 @@ export const userAPI = {
   },
 };
 
-// POC API URLs (using different base URL for POC backend)
+// =====================================================
+// API instance for Server APIs (Production)
+// =====================================================
 const POC_API_BASE_URL = process.env.REACT_APP_POC_API_BASE_URL || 'http://localhost:8000/api';
 
-// Create separate axios instance for POC APIs with auth
+// Create axios instance for server APIs with auth
 const pocApi = axios.create({
   baseURL: POC_API_BASE_URL,
   timeout: 30000,
@@ -144,7 +146,7 @@ const pocApi = axios.create({
   },
 });
 
-// Add auth token to POC API requests
+// Add auth token to requests
 pocApi.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('authToken');
@@ -160,13 +162,13 @@ pocApi.interceptors.request.use(
   }
 );
 
-// POC API error handling
+// API error handling
 pocApi.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
-    console.error('POC API Response error:', error);
+    console.error('API Response error:', error);
 
     if (error.response?.status === 401) {
       // Handle unauthorized - redirect to login if needed
@@ -198,137 +200,61 @@ pocApi.interceptors.response.use(
   }
 );
 
-// Database Connections API (POC)
-export const connectionsAPI = {
-  getAll: () => pocApi.get('/connections'),
-  create: (connectionData) => pocApi.post('/connections', connectionData),
-  getById: (id) => pocApi.get(`/connections/${id}`),
-  delete: (id) => pocApi.delete(`/connections/${id}`),
-  test: (connectionData) => pocApi.post('/connections/test', connectionData),
-  getTables: (connectionId) => pocApi.get(`/connections/${connectionId}/tables`),
-  getSourceTables: (connectionId) => pocApi.get(`/connections/${connectionId}/source_tables`),
-  getDestinationTables: (connectionId) => pocApi.get(`/connections/${connectionId}/destination_tables`),
-  getTableColumns: (connectionId, tableName) =>
-    pocApi.get(`/connections/${connectionId}/tables/${tableName}/columns`),
-  getSourceTableColumns: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/connections/${connectionId}/schemas/${schemaName}/source_tables/${tableName}/columns`),
-  // Schema APIs
-  getSourceSchemas: (connectionId) => pocApi.get(`/connections/${connectionId}/source_schemas`),
-  getDestinationSchemas: (connectionId) => pocApi.get(`/connections/${connectionId}/destination_schemas`),
-  getSourceTablesBySchema: (connectionId, schemaName) =>
-    pocApi.get(`/connections/${connectionId}/schemas/${schemaName}/source_tables`),
-  getDestinationTablesBySchema: (connectionId, schemaName) =>
-    pocApi.get(`/connections/${connectionId}/schemas/${schemaName}/destination_tables`),
-};
-
-// Workflows API (POC)
-export const workflowsAPI = {
-  getAll: () => pocApi.get('/workflows'),
-  create: (workflowData) => pocApi.post('/workflows', workflowData),
-  getById: (id) => pocApi.get(`/workflows/${id}`),
-  update: (id, workflowData) => pocApi.put(`/workflows/${id}`, workflowData),
-  delete: (id) => pocApi.delete(`/workflows/${id}`),
-  getExecutions: (workflowId) => pocApi.get(`/workflows/${workflowId}/executions`),
-  getPiiAttributes: () => pocApi.get('/workflows/pii-attributes'),
-};
-
-// Masking API (POC)
-export const maskingAPI = {
-  // executeWorkflow: (workflowId) => pocApi.post(`/workflows/${workflowId}/execute`),
-  executeWorkflow: (workflowId) => pocApi.post(`/workflows/${workflowId}/execute/without/enable/disable`),
-  getExecutionStatus: (workflowId, executionId) => pocApi.get(`/workflows/${workflowId}/executions/${executionId}/status`),
-  stopExecution: (workflowId, executionId) => pocApi.post(`/workflows/${workflowId}/executions/${executionId}/stop`),
-  generateSampleData: (piiAttribute, count = 5) =>
-    pocApi.post('/masking/sample-data', { pii_attribute: piiAttribute, count }),
-  validateWorkflow: (workflowId) => pocApi.post('/masking/validate-workflow', { workflow_id: workflowId }),
-};
-
-// Constraint Checking APIs (POC)
-export const constraintsAPI = {
-  // Check all constraints for a specific table
-  checkAll: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/all`),
-
-  // Individual constraint checks
-  checkPrimaryKeys: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/primary-keys`),
-
-  checkForeignKeys: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/foreign-keys`),
-
-  checkUniqueConstraints: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/unique`),
-
-  checkCheckConstraints: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/check`),
-
-  checkTriggers: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/connections/${connectionId}/tables/${schemaName}/${tableName}/triggers`),
-
-  checkIndexes: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/indexes`)
-};
-
-// Health check (POC)
-export const healthAPI = {
-  check: () => pocApi.get('/health'),
-};
-
 // =====================================================
-// Single Server APIs
+// Server APIs
 // For workflows where source and destination are the same
 // database/schema/table (in-place PII masking)
 // =====================================================
 
-// Single Server Connections API
-export const singleServerConnectionsAPI = {
+// Server Connections API
+export const serverConnectionsAPI = {
   // Connection CRUD operations
-  getAll: () => pocApi.get('/single-server/connections'),
-  create: (connectionData) => pocApi.post('/single-server/connections', connectionData),
-  getById: (id) => pocApi.get(`/single-server/connections/${id}`),
-  delete: (id) => pocApi.delete(`/single-server/connections/${id}`),
-  test: (connectionData) => pocApi.post('/single-server/connections/test', connectionData),
+  getAll: () => pocApi.get('/server/connections'),
+  create: (connectionData) => pocApi.post('/server/connections', connectionData),
+  getById: (id) => pocApi.get(`/server/connections/${id}`),
+  delete: (id) => pocApi.delete(`/server/connections/${id}`),
+  test: (connectionData) => pocApi.post('/server/connections/test', connectionData),
 
   // Schema discovery
-  getSchemas: (connectionId) => pocApi.get(`/single-server/connections/${connectionId}/schemas`),
+  getSchemas: (connectionId) => pocApi.get(`/server/connections/${connectionId}/schemas`),
 
   // Table discovery by schema
   getTablesBySchema: (connectionId, schemaName) =>
-    pocApi.get(`/single-server/connections/${connectionId}/schemas/${schemaName}/tables`),
+    pocApi.get(`/server/connections/${connectionId}/schemas/${schemaName}/tables`),
 
   // Column discovery for a specific table
   getTableColumns: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/single-server/connections/${connectionId}/schemas/${schemaName}/tables/${tableName}/columns`),
+    pocApi.get(`/server/connections/${connectionId}/schemas/${schemaName}/tables/${tableName}/columns`),
 };
 
-// Single Server Workflows API
-export const singleServerWorkflowsAPI = {
+// Server Workflows API
+export const serverWorkflowsAPI = {
   // Workflow CRUD operations
-  getAll: () => pocApi.get('/single-server/workflows'),
-  create: (workflowData) => pocApi.post('/single-server/workflows', workflowData),
-  getById: (id) => pocApi.get(`/single-server/workflows/${id}`),
-  update: (id, workflowData) => pocApi.put(`/single-server/workflows/${id}`, workflowData),
-  delete: (id) => pocApi.delete(`/single-server/workflows/${id}`),
+  getAll: () => pocApi.get('/server/workflows'),
+  create: (workflowData) => pocApi.post('/server/workflows', workflowData),
+  getById: (id) => pocApi.get(`/server/workflows/${id}`),
+  update: (id, workflowData) => pocApi.put(`/server/workflows/${id}`, workflowData),
+  delete: (id) => pocApi.delete(`/server/workflows/${id}`),
 
   // Execution history
-  getExecutions: (workflowId) => pocApi.get(`/single-server/workflows/${workflowId}/executions`),
+  getExecutions: (workflowId) => pocApi.get(`/server/workflows/${workflowId}/executions`),
 
   // PII attributes (reuses same endpoint as two-server system)
   getPiiAttributes: () => pocApi.get('/workflows/pii-attributes'),
 };
 
-// Single Server Execution/Masking API
-export const singleServerMaskingAPI = {
+// Server Execution/Masking API
+export const serverMaskingAPI = {
   // Execute workflow (in-place UPDATE)
-  executeWorkflow: (workflowId) => pocApi.post(`/single-server/workflows/${workflowId}/execute`),
+  executeWorkflow: (workflowId) => pocApi.post(`/server/workflows/${workflowId}/execute`),
 
   // Get execution status
   getExecutionStatus: (workflowId, executionId) =>
-    pocApi.get(`/single-server/workflows/${workflowId}/executions/${executionId}/status`),
+    pocApi.get(`/server/workflows/${workflowId}/executions/${executionId}/status`),
 
   // Stop running execution
   stopExecution: (workflowId, executionId) =>
-    pocApi.post(`/single-server/workflows/${workflowId}/executions/${executionId}/stop`),
+    pocApi.post(`/server/workflows/${workflowId}/executions/${executionId}/stop`),
 
   // Generate sample masked data for preview (reuses same endpoint)
   generateSampleData: (piiAttribute, count = 5) =>
@@ -336,37 +262,37 @@ export const singleServerMaskingAPI = {
 
   // Validate workflow configuration
   validateWorkflow: (workflowId) =>
-    pocApi.post('/single-server/masking/validate-workflow', { workflow_id: workflowId }),
+    pocApi.post('/server/masking/validate-workflow', { workflow_id: workflowId }),
 
   // Preview masking - get sample records with original and masked data
   getPreviewMasking: (workflowId, limit = 10) =>
-    pocApi.get(`/single-server/workflows/${workflowId}/preview?limit=${limit}`),
+    pocApi.get(`/server/workflows/${workflowId}/preview?limit=${limit}`),
 };
 
-// Single Server Constraints API
-export const singleServerConstraintsAPI = {
+// Server Constraints API
+export const serverConstraintsAPI = {
   // Check all constraints for a specific table
   checkAll: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/single-server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/all`),
+    pocApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/all`),
 
   // Individual constraint checks
   checkPrimaryKeys: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/single-server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/primary-keys`),
+    pocApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/primary-keys`),
 
   checkForeignKeys: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/single-server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/foreign-keys`),
+    pocApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/foreign-keys`),
 
   checkUniqueConstraints: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/single-server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/unique`),
+    pocApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/unique`),
 
   checkCheckConstraints: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/single-server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/check`),
+    pocApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/check`),
 
   checkTriggers: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/single-server/connections/${connectionId}/tables/${schemaName}/${tableName}/triggers`),
+    pocApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/triggers`),
 
   checkIndexes: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/single-server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/indexes`)
+    pocApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/indexes`)
 };
 
 export default api;

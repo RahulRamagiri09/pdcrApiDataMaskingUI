@@ -30,40 +30,40 @@ import {
 import { useSidebar } from '../../context/SidebarContext';
 import { getCurrentUser } from '../../utils/auth';
 
-const SIDEBAR_WIDTH_EXPANDED = 240;
+const SIDEBAR_WIDTH_EXPANDED = 200;
 const SIDEBAR_WIDTH_COLLAPSED = 64;
 
 const navigationItems = [
   {
     text: 'Dashboard',
     icon: <DashboardIcon />,
-    path: '/single-server/dashboard',
+    path: '/server/dashboard',
     section: 'main',
   },
   {
     text: 'Connections',
     icon: <StorageIcon />,
-    path: '/single-server/connections',
+    path: '/server/connections',
     section: 'main',
   },
   {
     text: 'Workflows',
     icon: <WorkflowIcon />,
-    path: '/single-server/workflows',
+    path: '/server/workflows',
     section: 'main',
   },
-  // {
-  //   text: 'Register User',
-  //   icon: <PersonAddIcon />,
-  //   path: '/register-user',
-  //   section: 'admin',
-  // },
-  // {
-  //   text: 'Register Role',
-  //   icon: <SecurityIcon />,
-  //   path: '/register-role',
-  //   section: 'admin',
-  // },
+  {
+    text: 'Register User',
+    icon: <PersonAddIcon />,
+    path: '/register-user',
+    section: 'admin',
+  },
+  {
+    text: 'Register Role',
+    icon: <SecurityIcon />,
+    path: '/register-role',
+    section: 'admin',
+  },
 ];
 
 const Sidebar = () => {
@@ -119,6 +119,10 @@ const Sidebar = () => {
             mr: isExpanded ? 3 : 'auto',
             justifyContent: 'center',
             color: active ? '#0b2677' : 'inherit',
+            fontSize: '1.25rem',
+            '& svg': {
+              fontSize: '1.25rem',
+            },
           }}
         >
           {item.icon}
@@ -201,8 +205,6 @@ const Sidebar = () => {
           />
         )}
       </Box>
-
-      <Divider />
 
       {/* Main Navigation - Flexible grow area */}
       <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>

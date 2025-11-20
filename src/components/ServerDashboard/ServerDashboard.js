@@ -10,6 +10,10 @@ import {
   Alert,
   Chip,
   Divider,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import {
   Storage as StorageIcon,
@@ -19,14 +23,17 @@ import {
   Error as ErrorIcon,
   PersonAdd as PersonAddIcon,
   Security as SecurityIcon,
+  KeyboardArrowDown as KeyboardArrowDownIcon,
+  AccountTree as WorkflowIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { singleServerConnectionsAPI, singleServerWorkflowsAPI } from '../../services/api';
+import { serverConnectionsAPI, serverWorkflowsAPI } from '../../services/api';
 import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
-// Create Material-UI theme with blue accent for single-server
+// Create Material-UI theme with blue accent for server
 const theme = createTheme({
   palette: {
     primary: {
@@ -38,7 +45,7 @@ const theme = createTheme({
   },
 });
 
-const SingleServerDashboard = () => {
+const ServerDashboard = () => {
   const navigate = useNavigate();
   const user = getCurrentUser();
   const [stats, setStats] = useState({
@@ -48,6 +55,20 @@ const SingleServerDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [quickActionsAnchor, setQuickActionsAnchor] = useState(null);
+
+  const handleQuickActionsClick = (event) => {
+    setQuickActionsAnchor(event.currentTarget);
+  };
+
+  const handleQuickActionsClose = () => {
+    setQuickActionsAnchor(null);
+  };
+
+  const handleQuickAction = (path) => {
+    handleQuickActionsClose();
+    navigate(path);
+  };
 
   useEffect(() => {
     loadDashboardData();
@@ -57,8 +78,8 @@ const SingleServerDashboard = () => {
     try {
       setLoading(true);
       const [connectionsResponse, workflowsResponse] = await Promise.all([
-        singleServerConnectionsAPI.getAll(),
-        singleServerWorkflowsAPI.getAll(),
+        serverConnectionsAPI.getAll(),
+        serverWorkflowsAPI.getAll(),
       ]);
 
       // Handle different response structures safely
@@ -120,13 +141,62 @@ const SingleServerDashboard = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{ width: '100%', mt: 3, mb: 3, px: 3 }}>
-        <Box mb={4}>
-          <Typography variant="h4" gutterBottom>
-            Dashboard
-          </Typography>
-          <Typography variant="subtitle1" color="text.secondary">
-            Welcome back, {user?.username || 'User'}! In-place PII masking for single database operations.
-          </Typography>
+        <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
+          <Box>
+            <Typography variant="h4">
+              Dashboard
+            </Typography>
+            <Typography variant="subtitle1" color="text.secondary" sx={{ fontSize: '1.25rem' }}>
+              Welcome back, <Box component="span" sx={{ color: '#0b2677', fontSize: '1.4rem', fontWeight: 600, textTransform: 'capitalize' }}>{user?.username || 'User'}</Box>
+            </Typography>
+          </Box>
+          <Box>
+            <Button
+              variant="contained"
+              endIcon={<KeyboardArrowDownIcon />}
+              onClick={handleQuickActionsClick}
+              sx={{
+                backgroundColor: '#0b2677',
+                '&:hover': {
+                  backgroundColor: '#082050',
+                },
+              }}
+            >
+              Quick Actions
+            </Button>
+            <Menu
+              anchorEl={quickActionsAnchor}
+              open={Boolean(quickActionsAnchor)}
+              onClose={handleQuickActionsClose}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+            >
+              <MenuItem onClick={() => handleQuickAction('/server/workflows/create')}>
+                <ListItemIcon>
+                  <WorkflowIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Create New Workflow</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => handleQuickAction('/server/connections')}>
+                <ListItemIcon>
+                  <AddIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Add Connection</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => handleQuickAction('/server/workflows')}>
+                <ListItemIcon>
+                  <VisibilityIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>View Workflows</ListItemText>
+              </MenuItem>
+            </Menu>
+          </Box>
         </Box>
 
         {error && (
@@ -136,8 +206,8 @@ const SingleServerDashboard = () => {
         )}
 
         {/* Stats Card */}
-        <Card sx={{ mb: 2 }}>
-          <CardContent sx={{ py: 2 }}>
+        <Card sx={{ mb: 1 }}>
+          <CardContent sx={{ py: 1, '&:last-child': { pb: 1 } }}>
             <Box display="flex" alignItems="center" justifyContent="space-around">
               <Box display="flex" flexDirection="column" alignItems="center" sx={{ flex: 1 }}>
                 <Typography variant="h4" sx={{ mb: 0.5 }}>
@@ -163,7 +233,7 @@ const SingleServerDashboard = () => {
         </Card>
 
         {/* Quick Actions */}
-        <Card sx={{ mb: 2 }}>
+        {/* <Card sx={{ mb: 2 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
               Quick Actions
@@ -185,20 +255,6 @@ const SingleServerDashboard = () => {
               </Button>
               <Button
                 variant="outlined"
-                startIcon={<PersonAddIcon />}
-                onClick={() => navigate('/register-user')}
-              >
-                Register New User
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<SecurityIcon />}
-                onClick={() => navigate('/register-role')}
-              >
-                Create New Role
-              </Button>
-              <Button
-                variant="outlined"
                 startIcon={<SecurityIcon />}
                 onClick={() => navigate('/single-server/workflows')}
               >
@@ -206,7 +262,7 @@ const SingleServerDashboard = () => {
               </Button>
             </Box>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Recent Workflows */}
         <Card>
@@ -224,7 +280,7 @@ const SingleServerDashboard = () => {
                   <Box
                     key={workflow.id}
                     sx={{
-                      p: 2,
+                      p: 1,
                       mb: 1,
                       border: '1px solid',
                       borderColor: 'divider',
@@ -234,7 +290,7 @@ const SingleServerDashboard = () => {
                         backgroundColor: 'action.hover',
                       },
                     }}
-                    onClick={() => navigate(`/single-server/workflows/${workflow.id}`)}
+                    onClick={() => navigate(`/server/workflows/${workflow.id}`)}
                   >
                     <Box display="flex" alignItems="center" justifyContent="space-between">
                       <Box>
@@ -261,4 +317,4 @@ const SingleServerDashboard = () => {
   );
 };
 
-export default SingleServerDashboard;
+export default ServerDashboard;

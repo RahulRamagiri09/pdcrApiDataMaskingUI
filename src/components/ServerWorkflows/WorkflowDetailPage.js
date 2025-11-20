@@ -48,22 +48,22 @@ import {
   Rule as RuleIcon,
   Bolt as BoltIcon,
   Storage as StorageIcon,
+  Preview as PreviewIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { workflowsAPI, maskingAPI, connectionsAPI, constraintsAPI } from '../../services/api';
-import Navbar from '../Navbar/Navbar';
+import { serverWorkflowsAPI, serverMaskingAPI, serverConnectionsAPI, serverConstraintsAPI } from '../../services/api';
 import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
-// Create Material-UI theme
+// Create Material-UI theme with blue accent
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#0b2677',
+      main: '#0b2677', // Blue theme
     },
     secondary: {
-      main: '#0b2677',
+      main: '#ed6c02', // Orange accent
     },
   },
 });
@@ -86,6 +86,7 @@ const WorkflowDetailPage = () => {
   const navigate = useNavigate();
   const user = getCurrentUser();
   const { id: workflowId } = useParams();
+  console.log('[DEBUG] workflowId from useParams:', workflowId);
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') === 'execute' ? 1 : 0;
 
@@ -93,6 +94,7 @@ const WorkflowDetailPage = () => {
   const [workflow, setWorkflow] = useState(null);
   const [executions, setExecutions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [executionsLoading, setExecutionsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [executeDialog, setExecuteDialog] = useState(false);
   const [executing, setExecuting] = useState(false);
@@ -111,7 +113,16 @@ const WorkflowDetailPage = () => {
   const [constraintChecks, setConstraintChecks] = useState({});
   const [expandedConstraints, setExpandedConstraints] = useState({});
 
+  // Preview masking state
+  const [previewData, setPreviewData] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState(null);
+  const [previewRecordLimit, setPreviewRecordLimit] = useState(2);
+  const [expandedRecords, setExpandedRecords] = useState({});
+  const [previewSubTab, setPreviewSubTab] = useState(0);
+
   useEffect(() => {
+    console.log('[DEBUG] useEffect fired with workflowId:', workflowId);
     loadWorkflowData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflowId]);
@@ -130,22 +141,102 @@ const WorkflowDetailPage = () => {
 
   const loadWorkflowData = async () => {
     try {
+      console.log('[DEBUG] loadWorkflowData called with workflowId:', workflowId);
       setLoading(true);
+
+      console.log('[DEBUG] Making API calls...');
       const [workflowRes, executionsRes] = await Promise.all([
-        workflowsAPI.getById(workflowId),
-        workflowsAPI.getExecutions(workflowId)
+        serverWorkflowsAPI.getById(workflowId),
+        serverWorkflowsAPI.getExecutions(workflowId)
       ]);
+
+      console.log('[DEBUG] API responses:', { workflowRes, executionsRes });
 
       // Handle different response structures safely
       const workflowData = workflowRes.data?.data || workflowRes.data;
       const executionsData = executionsRes.data?.data || executionsRes.data || [];
 
-      setWorkflow(workflowData);
-      setExecutions(Array.isArray(executionsData) ? executionsData : []);
+      console.log('[DEBUG] Processed data:', { workflowData, executionsData });
+
+      // Normalize workflow data to handle both old and new structures
+      // New structure: { table_mappings: [{ table_name, schema_name, column_mappings }] }
+      // Old structure: { schema_name, table_name, column_mappings }
+      let normalizedWorkflow = { ...workflowData };
+
+      if (workflowData.table_mappings && Array.isArray(workflowData.table_mappings) && workflowData.table_mappings.length > 0) {
+        // New structure with table_mappings array - extract data to root level for backward compatibility
+        const firstTableMapping = workflowData.table_mappings[0];
+        normalizedWorkflow = {
+          ...workflowData,
+          schema_name: firstTableMapping.schema_name,
+          table_name: firstTableMapping.table_name,
+          column_mappings: firstTableMapping.column_mappings || []
+        };
+      } else if (!workflowData.column_mappings) {
+        // Neither structure has column_mappings - set empty array
+        normalizedWorkflow.column_mappings = [];
+      }
+
+      console.log('[DEBUG] Normalized workflow:', normalizedWorkflow);
+
+      setWorkflow(normalizedWorkflow);
+      const sortedExecutions = Array.isArray(executionsData)
+        ? executionsData.sort((a, b) => b.id - a.id)  // Sort by ID descending (newest first)
+        : [];
+      setExecutions(sortedExecutions);
+
+      // Fetch connection details separately if connection_id exists but connection object is missing
+      if (workflowData && workflowData.connection_id && !workflowData.connection) {
+        try {
+          const connResponse = await serverConnectionsAPI.getById(workflowData.connection_id);
+          const connData = connResponse.data?.data || connResponse.data;
+
+          // Update workflow with connection details
+          setWorkflow(prev => ({
+            ...prev,
+            connection: connData
+          }));
+        } catch (connErr) {
+          console.error('Failed to load connection details:', connErr);
+          // Connection fetch failed, but workflow still loads - set error for user visibility
+          setError('Workflow loaded but connection details could not be fetched: ' + connErr.message);
+        }
+      }
     } catch (err) {
-      setError(err.message);
+      console.error('Failed to load workflow data:', err);
+      setError(err.message || 'Failed to load workflow');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadExecutions = async () => {
+    try {
+      setExecutionsLoading(true);
+
+      // Call both APIs like POC implementation
+      const [workflowRes, executionsRes] = await Promise.all([
+        serverWorkflowsAPI.getById(workflowId),
+        serverWorkflowsAPI.getExecutions(workflowId)
+      ]);
+
+      // Update workflow data to refresh status
+      const workflowData = workflowRes.data?.data || workflowRes.data;
+      if (workflowData) {
+        setWorkflow(prevWorkflow => ({ ...prevWorkflow, ...workflowData }));
+      }
+
+      // Update executions with sorting
+      const executionsData = executionsRes.data?.data || executionsRes.data || [];
+      const sortedExecutions = Array.isArray(executionsData)
+        ? executionsData.sort((a, b) => b.id - a.id)  // Sort by ID descending (newest first)
+        : [];
+      setExecutions(sortedExecutions);
+    } catch (err) {
+      console.error('Failed to load executions:', err);
+      setError(err.message || 'Failed to load execution history');
+    } finally {
+      setExecutionsLoading(false);
     }
   };
 
@@ -178,7 +269,7 @@ const WorkflowDetailPage = () => {
       setExecuting(true);
       setError(null);
 
-      const response = await maskingAPI.executeWorkflow(workflowId);
+      const response = await serverMaskingAPI.executeWorkflow(workflowId);
       const result = response.data?.data || response.data;
 
       // New async endpoint returns execution_id, task_id, status, message
@@ -207,8 +298,8 @@ const WorkflowDetailPage = () => {
   const handleDeleteWorkflow = async () => {
     if (window.confirm('Are you sure you want to delete this workflow? This action cannot be undone.')) {
       try {
-        await workflowsAPI.delete(workflowId);
-        navigate('/workflows');
+        await serverWorkflowsAPI.delete(workflowId);
+        navigate('/server/workflows');
       } catch (err) {
         setError(err.message);
       }
@@ -234,7 +325,7 @@ const WorkflowDetailPage = () => {
   const handleStopExecution = async (executionId) => {
     try {
       setLoading(true);
-      await maskingAPI.stopExecution(workflow.id, executionId);
+      await serverMaskingAPI.stopExecution(workflow.id, executionId);
       setError(null);
       await loadWorkflowData(); // Reload to show updated status
     } catch (err) {
@@ -242,6 +333,46 @@ const WorkflowDetailPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Preview masking handlers
+  const handleLoadPreview = async () => {
+    try {
+      setPreviewLoading(true);
+      setPreviewError(null);
+      setPreviewData(null); // Clear old data before loading new preview
+
+      // Fetch preview with original and masked data in one call
+      const response = await serverMaskingAPI.getPreviewMasking(workflow.id, previewRecordLimit);
+      const responseData = response.data?.data;
+
+      if (!responseData || !responseData.preview_results || responseData.preview_results.length === 0) {
+        setPreviewError('No records found in the target table');
+        setPreviewData(null);
+        return;
+      }
+
+      setPreviewData({
+        results: responseData.preview_results,
+        schema_name: responseData.schema_name,
+        table_name: responseData.table_name,
+        total_records: responseData.total_records,
+        sample_count: responseData.sample_count
+      });
+
+    } catch (err) {
+      setPreviewError(err.response?.data?.detail || err.message || 'Failed to load preview');
+      setPreviewData(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleToggleRecord = (index) => {
+    setExpandedRecords(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
   };
 
   // Constraint checking handlers
@@ -266,12 +397,12 @@ const WorkflowDetailPage = () => {
 
       // Call all constraint endpoints in parallel
       const [pkRes, fkRes, uniqueRes, checkRes, triggerRes, indexRes] = await Promise.all([
-        constraintsAPI.checkPrimaryKeys(workflow.destination_connection_id, destSchema, destTable),
-        constraintsAPI.checkForeignKeys(workflow.destination_connection_id, destSchema, destTable),
-        constraintsAPI.checkUniqueConstraints(workflow.destination_connection_id, destSchema, destTable),
-        constraintsAPI.checkCheckConstraints(workflow.destination_connection_id, destSchema, destTable),
-        constraintsAPI.checkTriggers(workflow.destination_connection_id, destSchema, destTable),
-        constraintsAPI.checkIndexes(workflow.destination_connection_id, destSchema, destTable)
+        serverConstraintsAPI.checkPrimaryKeys(workflow.connection_id, destSchema, destTable),
+        serverConstraintsAPI.checkForeignKeys(workflow.connection_id, destSchema, destTable),
+        serverConstraintsAPI.checkUniqueConstraints(workflow.connection_id, destSchema, destTable),
+        serverConstraintsAPI.checkCheckConstraints(workflow.connection_id, destSchema, destTable),
+        serverConstraintsAPI.checkTriggers(workflow.connection_id, destSchema, destTable),
+        serverConstraintsAPI.checkIndexes(workflow.connection_id, destSchema, destTable)
       ]);
 
       // Extract arrays from responses (backend returns array directly in data field)
@@ -358,12 +489,12 @@ const WorkflowDetailPage = () => {
     };
 
     const apiMap = {
-      pk: constraintsAPI.checkPrimaryKeys,
-      fk: constraintsAPI.checkForeignKeys,
-      unique: constraintsAPI.checkUniqueConstraints,
-      check: constraintsAPI.checkCheckConstraints,
-      triggers: constraintsAPI.checkTriggers,
-      indexes: constraintsAPI.checkIndexes
+      pk: serverConstraintsAPI.checkPrimaryKeys,
+      fk: serverConstraintsAPI.checkForeignKeys,
+      unique: serverConstraintsAPI.checkUniqueConstraints,
+      check: serverConstraintsAPI.checkCheckConstraints,
+      triggers: serverConstraintsAPI.checkTriggers,
+      indexes: serverConstraintsAPI.checkIndexes
     };
 
     try {
@@ -376,7 +507,7 @@ const WorkflowDetailPage = () => {
       }));
 
       const response = await apiMap[type](
-        workflow.destination_connection_id,
+        workflow.connection_id,
         destSchema,
         destTable
       );
@@ -485,37 +616,55 @@ const WorkflowDetailPage = () => {
       pk: {
         label: 'Primary Keys',
         icon: KeyIcon,
-        color: 'primary.main',
+        color: '#1976d2',
+        borderColor: '#1976d2',
+        backgroundColor: 'rgba(25, 118, 210, 0.08)',
+        buttonColor: 'primary',
         stateKey: 'primaryKeys'
       },
       fk: {
         label: 'Foreign Keys',
         icon: LinkIcon,
-        color: 'primary.main',
+        color: '#9c27b0',
+        borderColor: '#9c27b0',
+        backgroundColor: 'rgba(156, 39, 176, 0.08)',
+        buttonColor: 'primary',
         stateKey: 'foreignKeys'
       },
       unique: {
         label: 'Unique Constraints',
         icon: CheckCircleOutlineIcon,
-        color: 'primary.main',
+        color: '#2e7d32',
+        borderColor: '#2e7d32',
+        backgroundColor: 'rgba(46, 125, 50, 0.08)',
+        buttonColor: 'primary',
         stateKey: 'uniqueConstraints'
       },
       check: {
         label: 'Check Constraints',
         icon: RuleIcon,
-        color: 'primary.main',
+        color: '#ed6c02',
+        borderColor: '#ed6c02',
+        backgroundColor: 'rgba(237, 108, 2, 0.08)',
+        buttonColor: 'primary',
         stateKey: 'checkConstraints'
       },
       triggers: {
         label: 'Triggers',
         icon: BoltIcon,
-        color: 'info.main',
+        color: '#d32f2f',
+        borderColor: '#d32f2f',
+        backgroundColor: 'rgba(211, 47, 47, 0.08)',
+        buttonColor: 'primary',
         stateKey: 'triggers'
       },
       indexes: {
         label: 'Indexes',
         icon: StorageIcon,
-        color: 'primary.main',
+        color: '#00897b',
+        borderColor: '#00897b',
+        backgroundColor: 'rgba(0, 137, 123, 0.12)',
+        buttonColor: 'primary',
         stateKey: 'indexes'
       }
     };
@@ -532,13 +681,14 @@ const WorkflowDetailPage = () => {
         variant="outlined"
         sx={{
           mb: 2,
-          borderColor: hasData ? 'success.main' : 'grey.300',
-          borderWidth: hasData ? 2 : 1
+          borderColor: hasData ? config.borderColor : 'grey.300',
+          borderWidth: hasData ? 2 : 1,
+          backgroundColor: config.backgroundColor
         }}
       >
-        <CardContent>
+        <CardContent sx={{ pt: 1.5, px: 2, pb: 0 }}>
           {/* Header */}
-          <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+          <Box display="flex" alignItems="center" justifyContent="space-between" mb={0}>
             <Box display="flex" alignItems="center" gap={1}>
               <Icon sx={{ color: config.color, fontSize: 28 }} />
               <Typography variant="subtitle1" fontWeight="bold">
@@ -557,6 +707,8 @@ const WorkflowDetailPage = () => {
                 <Button
                   size="small"
                   variant="outlined"
+                  color={config.buttonColor}
+                  sx={{ borderColor: config.borderColor, color: config.color }}
                   startIcon={<ExpandMoreIcon sx={{ transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: '0.3s' }} />}
                   onClick={() => handleToggleConstraint(tableName, type)}
                   disabled={constraintData.count === 0}
@@ -567,9 +719,10 @@ const WorkflowDetailPage = () => {
                 <Button
                   size="small"
                   variant="contained"
+                  color={config.buttonColor}
                   onClick={() => onCheck(type)}
                   disabled={isLoading}
-                  startIcon={isLoading ? <CircularProgress size={16} /> : null}
+                  startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : null}
                 >
                   Check
                 </Button>
@@ -797,16 +950,8 @@ const WorkflowDetailPage = () => {
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Box>
             <Typography variant="subtitle1" fontWeight="bold">
-              Destination Table: {mapping.destination_table}
+              Table: {mapping.destination_table}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Check database constraints for the destination table
-            </Typography>
-            {checks?.lastChecked && (
-              <Typography variant="caption" color="text.secondary">
-                Last checked: {new Date(checks.lastChecked).toLocaleString()}
-              </Typography>
-            )}
           </Box>
           <Button
             variant="contained"
@@ -875,7 +1020,7 @@ const WorkflowDetailPage = () => {
             <Button
               variant="outlined"
               startIcon={<EditIcon />}
-              onClick={() => navigate(`/workflows/${workflowId}/edit`)}
+              onClick={() => navigate(`/server/workflows/${workflowId}/edit`)}
             >
               Edit Workflow
             </Button>
@@ -938,145 +1083,53 @@ const WorkflowDetailPage = () => {
 
           <Divider sx={{ my: 2 }} />
 
-          {/* Connections Side by Side */}
+          {/* Single Connection */}
           <Grid container spacing={10} sx={{ mb: 3 }}>
-            {/* Source Connection */}
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Source Connection
+                Connection
               </Typography>
-              {workflow.source_connection ? (
+              {workflow.connection ? (
                 <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1, mt: 1 }}>
                   <Typography variant="body2" sx={{ mb: 0.5 }}>
-                    <strong>Name:</strong> {workflow.source_connection.name}
+                    <strong>Name:</strong> {workflow.connection.name}
                   </Typography>
                   <Typography variant="body2" sx={{ mb: 0.5 }}>
-                    <strong>Type:</strong> {workflow.source_connection.connection_type === 'azure_sql' ? 'Azure SQL' : 'Oracle'}
+                    <strong>Type:</strong> {workflow.connection.connection_type === 'azure_sql' ? 'Azure SQL' : 'Oracle'}
                   </Typography>
                   <Typography variant="body2" sx={{ mb: 0.5 }}>
-                    <strong>Server:</strong> {workflow.source_connection.server}
+                    <strong>Server:</strong> {workflow.connection.server}
                   </Typography>
                   <Typography variant="body2">
-                    <strong>Database:</strong> {workflow.source_connection.database}
+                    <strong>Database:</strong> {workflow.connection.database}
                   </Typography>
                 </Box>
               ) : (
-                <Typography variant="body2" color="text.secondary">No source connection</Typography>
+                <Typography variant="body2" color="text.secondary">No connection</Typography>
               )}
             </Grid>
 
-            {/* Destination Connection */}
+            {/* Table Information */}
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Destination Connection
+                Table Information
               </Typography>
-              {workflow.destination_connection ? (
-                <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1, mt: 1 }}>
-                  <Typography variant="body2" sx={{ mb: 0.5 }}>
-                    <strong>Name:</strong> {workflow.destination_connection.name}
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 0.5 }}>
-                    <strong>Type:</strong> {workflow.destination_connection.connection_type === 'azure_sql' ? 'Azure SQL' : 'Oracle'}
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 0.5 }}>
-                    <strong>Server:</strong> {workflow.destination_connection.server}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Database:</strong> {workflow.destination_connection.database}
-                  </Typography>
-                </Box>
-              ) : (
-                <Typography variant="body2" color="text.secondary">No destination connection</Typography>
-              )}
+              <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1, mt: 1 }}>
+                <Typography variant="body2" sx={{ mb: 0.5 }}>
+                  <strong>Schema:</strong> {workflow.schema_name || 'N/A'}
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 0.5 }}>
+                  <strong>Table:</strong> {workflow.table_name || 'N/A'}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Full Name:</strong> {workflow.schema_name && workflow.table_name ? `${workflow.schema_name}.${workflow.table_name}` : 'N/A'}
+                </Typography>
+              </Box>
             </Grid>
           </Grid>
         </CardContent>
       </Card>
 
-      {/* Table Mappings Card */}
-      {workflow.table_mappings && (
-        <Card sx={{ mt: 2 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Table Mappings ({workflow.table_mappings?.length || 0})
-            </Typography>
-            {workflow.table_mappings?.map((mapping, index) => (
-              <Accordion key={index}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Box display="flex" alignItems="center" width="100%">
-                    <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
-                      {mapping.source_table} → {mapping.destination_table}
-                    </Typography>
-                    <Chip
-                      label={`${mapping.column_mappings?.filter(col => col.is_pii).length || 0} PII columns`}
-                      size="small"
-                      color="primary"
-                      sx={{ mr: 2 }}
-                    />
-                  </Box>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Box sx={{ width: '100%' }}>
-                    <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                      <Tabs
-                        value={mappingTabValue[index] || 0}
-                        onChange={(e, newValue) => handleMappingTabChange(index, newValue)}
-                      >
-                        <Tab label="Column Mappings" />
-                        <Tab label="Constraint Checks" />
-                      </Tabs>
-                    </Box>
-
-                    {/* Tab Panel 1: Column Mappings */}
-                    {(mappingTabValue[index] || 0) === 0 && (
-                      <Box sx={{ p: 3 }}>
-                        <TableContainer component={Paper}>
-                          <Table size="small">
-                            <TableHead>
-                              <TableRow>
-                                <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Source Column</TableCell>
-                                <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Destination Column</TableCell>
-                                <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>PII</TableCell>
-                                <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>PII Attribute</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {mapping.column_mappings?.map((col, colIndex) => (
-                                <TableRow key={colIndex}>
-                                  <TableCell>{col.source_column}</TableCell>
-                                  <TableCell>{col.destination_column}</TableCell>
-                                  <TableCell>
-                                    {col.is_pii ? (
-                                      <Chip label="Yes" color="warning" size="small" />
-                                    ) : (
-                                      <Chip label="No" variant="outlined" size="small" />
-                                    )}
-                                  </TableCell>
-                                  <TableCell>
-                                    {col.pii_attribute || '-'}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-                      </Box>
-                    )}
-
-                    {/* Tab Panel 2: Constraint Checks */}
-                    {(mappingTabValue[index] || 0) === 1 && (
-                      <Box sx={{ p: 3 }}>
-                        {/* Constraint checks UI will go here */}
-                        {renderConstraintChecks(mapping, index)}
-                      </Box>
-                    )}
-                  </Box>
-                </AccordionDetails>
-              </Accordion>
-            ))}
-          </CardContent>
-        </Card>
-      )}
     </Box>
   );
 
@@ -1085,7 +1138,7 @@ const WorkflowDetailPage = () => {
       <CardContent>
         <Box position="relative">
           {/* Loading Overlay */}
-          {loading && (
+          {executionsLoading && (
             <Box
               position="absolute"
               top={0}
@@ -1107,7 +1160,7 @@ const WorkflowDetailPage = () => {
             <Typography variant="h6">
               Execution History ({executions.length})
             </Typography>
-            <IconButton onClick={loadWorkflowData}>
+            <IconButton onClick={loadExecutions}>
               <RefreshIcon />
             </IconButton>
           </Box>
@@ -1121,13 +1174,14 @@ const WorkflowDetailPage = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Execution ID</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Started</TableCell>
-                  <TableCell>Completed</TableCell>
-                  <TableCell>Records</TableCell>
-                  <TableCell>Duration</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell align="left">Execution ID</TableCell>
+                  <TableCell align="left">Status</TableCell>
+                  <TableCell align="left">Started</TableCell>
+                  <TableCell align="left">Completed</TableCell>
+                  <TableCell align="left">Total Records</TableCell>
+                  <TableCell align="left">Processed Records</TableCell>
+                  <TableCell align="left">Duration</TableCell>
+                  <TableCell align="left">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -1138,7 +1192,7 @@ const WorkflowDetailPage = () => {
 
                   return (
                     <TableRow key={execution.id}>
-                      <TableCell>
+                      <TableCell align="left">
                         <Typography variant="body2" component="code" sx={{
                           backgroundColor: '#f5f5f5',
                           padding: '2px 6px',
@@ -1147,14 +1201,15 @@ const WorkflowDetailPage = () => {
                           {execution.id}
                         </Typography>
                       </TableCell>
-                      <TableCell>{getStatusChip(execution.status)}</TableCell>
-                      <TableCell>{new Date(execution.started_at).toLocaleString()}</TableCell>
-                      <TableCell>
+                      <TableCell align="left">{getStatusChip(execution.status)}</TableCell>
+                      <TableCell align="left">{new Date(execution.started_at).toLocaleString()}</TableCell>
+                      <TableCell align="left">
                         {execution.completed_at ? new Date(execution.completed_at).toLocaleString() : '-'}
                       </TableCell>
-                      <TableCell>{execution.records_processed || 0}</TableCell>
-                      <TableCell>{formatDuration(duration)}</TableCell>
-                      <TableCell>
+                      <TableCell align="left">{execution.records_total || 0}</TableCell>
+                      <TableCell align="left">{execution.records_processed || 0}</TableCell>
+                      <TableCell align="left">{formatDuration(duration)}</TableCell>
+                      <TableCell align="left">
                         <Box display="flex" gap={1}>
                           <IconButton
                             size="small"
@@ -1188,6 +1243,270 @@ const WorkflowDetailPage = () => {
       </CardContent>
     </Card>
   );
+
+  const renderPreviewMasking = () => {
+    // Get PII column names for highlighting
+    const piiColumns = workflow?.column_mappings
+      ?.filter(mapping => mapping.is_pii)
+      ?.map(mapping => mapping.column_name) || [];
+
+    return (
+      <Card>
+        <CardContent>
+          {/* Nested Tabs for Preview Masking */}
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+            <Tabs value={previewSubTab} onChange={(_, newValue) => setPreviewSubTab(newValue)}>
+              <Tab label="Column Mapping" />
+              <Tab label="Constraint Checks" />
+              <Tab label="Preview Masking" />
+            </Tabs>
+          </Box>
+
+          {/* Sub-Tab 0: Column Mapping */}
+          {previewSubTab === 0 && (
+            <Box>
+              {/* <Typography variant="h6" gutterBottom>
+                Column Mappings
+              </Typography> */}
+
+              {!workflow.column_mappings || workflow.column_mappings.length === 0 ? (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  No column mappings found for this workflow.
+                </Alert>
+              ) : (
+                <Box sx={{ mt: 2 }}>
+                  <Box display="flex" alignItems="center" gap={2} mb={2}>
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      Table: {workflow.schema_name}.{workflow.table_name}
+                    </Typography>
+                    <Chip
+                      label={`${workflow.column_mappings.filter(col => col.is_pii).length} PII columns`}
+                      size="small"
+                      color="success"
+                    />
+                  </Box>
+                  <TableContainer component={Paper}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff' }}>Column Name</TableCell>
+                          <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff' }}>PII</TableCell>
+                          <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff' }}>PII Attribute</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {workflow.column_mappings.map((col, colIndex) => (
+                          <TableRow
+                            key={colIndex}
+                            sx={{
+                              backgroundColor: colIndex % 2 === 0 ? '#f9f9f9' : 'inherit'
+                            }}
+                          >
+                            <TableCell>{col.column_name}</TableCell>
+                            <TableCell>
+                              {col.is_pii ? (
+                                <Chip label="Yes" color="warning" size="small" />
+                              ) : (
+                                <Chip label="No" variant="outlined" size="small" />
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {col.pii_attribute || '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              )}
+            </Box>
+          )}
+
+          {/* Sub-Tab 1: Constraint Checks */}
+          {previewSubTab === 1 && (
+            <Box>
+              {renderConstraintChecks({ destination_table: `${workflow.schema_name}.${workflow.table_name}` }, 0)}
+            </Box>
+          )}
+
+          {/* Sub-Tab 2: Preview Masking */}
+          {previewSubTab === 2 && (
+            <Box>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="h6">
+                  Preview Masking on Sample Records
+                </Typography>
+                <Box display="flex" gap={2} alignItems="center">
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Typography variant="body2">Records:</Typography>
+                    <select
+                      value={previewRecordLimit}
+                      onChange={(e) => setPreviewRecordLimit(Number(e.target.value))}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '4px',
+                        border: '1px solid #ccc',
+                        fontSize: '14px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value={2}>2</option>
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={15}>15</option>
+                    </select>
+                  </Box>
+                  <Button
+                    variant="contained"
+                    startIcon={previewLoading ? <CircularProgress size={16} color="inherit" /> : <PreviewIcon />}
+                    onClick={handleLoadPreview}
+                    disabled={previewLoading}
+                  >
+                    {previewLoading ? 'Loading...' : 'Load Preview'}
+                  </Button>
+                </Box>
+              </Box>
+
+              <Alert severity="info" sx={{ mb: 2 }}>
+                This preview shows how masking will affect sample records from your table.
+                <strong> No data will be modified in the database.</strong>
+              </Alert>
+
+              {previewError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {previewError}
+                </Alert>
+              )}
+
+              {previewData && (
+                <>
+                  <Box mb={2}>
+                    <Typography variant="body2" color="text.secondary">
+                      Table: <strong>{previewData.schema_name}.{previewData.table_name}</strong> |
+                      Total Records: <strong>{previewData.total_records?.toLocaleString()}</strong> |
+                      Showing: <strong>{previewData.sample_count}</strong> sample records
+                    </Typography>
+                  </Box>
+
+                  {previewData.results.map((result, index) => {
+                    const isExpanded = expandedRecords[index] || false;
+                    const allColumns = Object.keys(result.original);
+
+                    return (
+                      <Accordion
+                        key={index}
+                        expanded={isExpanded}
+                        onChange={() => handleToggleRecord(index)}
+                        sx={{ mb: 1 }}
+                      >
+                        <AccordionSummary
+                          expandIcon={<ExpandMoreIcon />}
+                          sx={{
+                            backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                            '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.12)' },
+                            borderLeft: '4px solid #1976d2'
+                          }}
+                        >
+                          <Typography variant="subtitle1" fontWeight="500">
+                            Record {index + 1}
+                            {result.original.id !== undefined && ` - ID: ${result.original.id}`}
+                          </Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                          <TableContainer component={Paper} variant="outlined">
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', width: '25%' }}>Column Name</TableCell>
+                                  <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', width: '37.5%' }}>Original Value</TableCell>
+                                  <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', width: '37.5%' }}>Masked Value</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {allColumns.map((columnName, colIndex) => {
+                                  const isPII = piiColumns.includes(columnName);
+                                  const originalValue = result.original[columnName];
+                                  const maskedValue = result.masked[columnName];
+                                  const hasChanged = originalValue !== maskedValue;
+
+                                  return (
+                                    <TableRow
+                                      key={columnName}
+                                      sx={{
+                                        backgroundColor: isPII ? '#fff3e0' : (colIndex % 2 === 0 ? '#f9f9f9' : '#ffffff'),
+                                      }}
+                                    >
+                                      <TableCell>
+                                        <Box display="flex" alignItems="center" gap={1}>
+                                          {columnName}
+                                          {isPII && (
+                                            <Chip
+                                              label="PII"
+                                              size="small"
+                                              color="warning"
+                                              sx={{ height: 20, fontSize: '0.7rem' }}
+                                            />
+                                          )}
+                                        </Box>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Typography
+                                          variant="body2"
+                                          sx={{
+                                            fontFamily: 'monospace',
+                                            wordBreak: 'break-all'
+                                          }}
+                                        >
+                                          {originalValue === null ? <em>null</em> : String(originalValue)}
+                                        </Typography>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Typography
+                                          variant="body2"
+                                          sx={{
+                                            fontFamily: 'monospace',
+                                            fontWeight: hasChanged ? 'bold' : 'normal',
+                                            color: hasChanged ? 'primary.main' : 'inherit',
+                                            wordBreak: 'break-all'
+                                          }}
+                                        >
+                                          {maskedValue === null ? <em>null</em> : String(maskedValue)}
+                                        </Typography>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        </AccordionDetails>
+                      </Accordion>
+                    );
+                  })}
+                </>
+              )}
+
+              {!previewData && !previewLoading && !previewError && (
+                <Box
+                  display="flex"
+                  flexDirection="column"
+                  alignItems="center"
+                  justifyContent="center"
+                  py={6}
+                >
+                  <PreviewIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+                  <Typography variant="body1" color="text.secondary">
+                    Click "Load Preview" to see how masking will affect your data
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   const renderLogsDialog = () => (
     <Dialog
@@ -1246,7 +1565,36 @@ const WorkflowDetailPage = () => {
   );
 
   const workflowDetailContent = () => {
-    if (!workflow && !loading) {
+    // Show error first if it exists
+    if (error && !loading) {
+      return (
+        <Box>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+          <Button
+            variant="outlined"
+            onClick={loadWorkflowData}
+            startIcon={<RefreshIcon />}
+          >
+            Retry
+          </Button>
+        </Box>
+      );
+    }
+
+    // Show loading spinner
+    if (loading) {
+      return (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <CircularProgress />
+        </Box>
+      );
+    }
+
+    // Show generic not found only if no error and no workflow
+    if (!workflow) {
+      console.log('[DEBUG] Showing "not found" - workflow:', workflow, 'loading:', loading, 'error:', error);
       return (
         <Box>
           <Alert severity="error">
@@ -1256,19 +1604,11 @@ const WorkflowDetailPage = () => {
       );
     }
 
-    if (!workflow) {
-      return (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
-      );
-    }
-
     return (
       <Box sx={{ width: '100%' }}>
         <Box display="flex" alignItems="center" mb={3}>
           <IconButton
-            onClick={() => navigate('/workflows')}
+            onClick={() => navigate('/server/workflows')}
             sx={{
               mr: 2,
               '&:hover': {
@@ -1299,6 +1639,7 @@ const WorkflowDetailPage = () => {
           <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
             <Tab label="Overview" />
             <Tab label="Execution History" />
+            <Tab label="Preview Masking" />
           </Tabs>
         </Box>
 
@@ -1310,6 +1651,10 @@ const WorkflowDetailPage = () => {
           {renderExecutionHistory()}
         </TabPanel>
 
+        <TabPanel value={tabValue} index={2}>
+          {renderPreviewMasking()}
+        </TabPanel>
+
         <Dialog open={executeDialog} onClose={() => setExecuteDialog(false)} maxWidth="sm" fullWidth>
           <DialogTitle>Execute Workflow</DialogTitle>
           <DialogContent>
@@ -1317,17 +1662,15 @@ const WorkflowDetailPage = () => {
               Are you sure you want to execute this workflow?
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              This will start the PII masking and data copy process from the source to destination database.
+              This will start the in-place PII masking process on the selected table.
               The process may take some time depending on the amount of data.
             </Typography>
 
             <Box mt={2} p={2} bgcolor="grey.100" borderRadius={1}>
               <Typography variant="subtitle2">Workflow Summary:</Typography>
-              <Typography variant="body2">• {workflow.table_mappings?.length || 0} table(s) to process</Typography>
+              <Typography variant="body2">• Table: {workflow.schema_name}.{workflow.table_name}</Typography>
               <Typography variant="body2">
-                • {workflow.table_mappings?.reduce((total, mapping) =>
-                  total + (mapping.column_mappings?.filter(col => col.is_pii).length || 0), 0
-                )} PII column(s) to mask
+                • {workflow.column_mappings?.filter(col => col.is_pii).length || 0} PII column(s) to mask
               </Typography>
             </Box>
           </DialogContent>
@@ -1348,18 +1691,13 @@ const WorkflowDetailPage = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      <Navbar user={user} />
-      <div className="flex-1 overflow-auto">
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <Box sx={{ maxWidth: 'xl', mx: 'auto', mt: 3, mb: 3, px: 3 }}>
-            {workflowDetailContent()}
-          </Box>
-          {renderLogsDialog()}
-        </ThemeProvider>
-      </div>
-    </div>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 3 }}>
+        {workflowDetailContent()}
+      </Box>
+      {renderLogsDialog()}
+    </ThemeProvider>
   );
 };
 

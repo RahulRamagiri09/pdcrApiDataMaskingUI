@@ -26,7 +26,7 @@
 
 ### 1.1 Project Overview
 
-The **PII Masking Tool** is an enterprise web application designed to protect Personally Identifiable Information (PII) by masking sensitive data when copying from production databases to non-production environments (UAT, Development, Testing).
+The **PII Masking Tool** is an enterprise web application designed to protect Personally Identifiable Information (PII) by performing **in-place masking** of sensitive data within a single database. The tool masks PII columns directly in the same table, schema, and database where the data resides.
 
 ### 1.2 Purpose
 
@@ -38,10 +38,12 @@ This document provides a comprehensive technical architecture overview of the PI
 
 ### 1.3 Key Features
 
-- **Database Connection Management**: Configure and test connections to multiple SQL Server databases
+- **Server Connection Management**: Configure and test connections to SQL Server databases (Azure SQL, PostgreSQL, Oracle, SQL Server)
 - **Schema Discovery**: Browse database schemas, tables, and column metadata
-- **Intelligent Workflow Creation**: Map source columns to appropriate PII masking techniques based on data types
-- **Automated PII Masking**: Execute data transformation with constraint validation
+- **Intelligent Workflow Creation**: Select tables and map columns to appropriate PII masking techniques based on data types
+- **In-Place PII Masking**: Execute data transformation directly on the same table with constraint validation
+- **Preview Masking**: Preview how masking will affect sample records before execution
+- **Constraint Checking**: Validate primary keys, foreign keys, unique constraints, check constraints, triggers, and indexes before masking
 - **Execution Monitoring**: Track workflow execution history with success/failure metrics
 - **Role-Based Access Control**: Admin and User roles with different permission levels
 - **Audit Trail**: Complete history of who executed what and when
@@ -50,8 +52,8 @@ This document provides a comprehensive technical architecture overview of the PI
 
 - **Database Administrators**: Manage database connections and schema exploration
 - **Data Privacy Officers**: Configure PII masking workflows
-- **QA Engineers**: Execute workflows to create test datasets
-- **Development Teams**: Access masked data for development purposes
+- **Data Engineers**: Execute workflows to mask sensitive data in-place
+- **Compliance Teams**: Monitor masking operations and audit trails
 
 ---
 
@@ -59,13 +61,14 @@ This document provides a comprehensive technical architecture overview of the PI
 
 ### 2.1 Business Context
 
-Organizations need to comply with data privacy regulations (GDPR, CCPA, HIPAA) while providing realistic test data to non-production environments. The PII Masking Tool automates the process of:
+Organizations need to comply with data privacy regulations (GDPR, CCPA, HIPAA) by protecting sensitive PII data within their databases. The PII Masking Tool automates the process of:
 
-1. Connecting to production (source) and non-production (target) databases
-2. Identifying columns containing PII
-3. Applying appropriate masking transformations
-4. Writing masked data to target databases
-5. Maintaining data integrity and referential constraints
+1. Connecting to database servers (Azure SQL, PostgreSQL, Oracle, SQL Server)
+2. Discovering schemas, tables, and columns containing PII
+3. Configuring column-level masking rules based on data types
+4. Validating database constraints before masking (PKs, FKs, unique, check, triggers, indexes)
+5. Executing in-place masking transformations directly on the same table
+6. Maintaining data integrity and referential constraints
 
 ### 2.2 System Capabilities
 
@@ -74,11 +77,13 @@ Organizations need to comply with data privacy regulations (GDPR, CCPA, HIPAA) w
 │                    SYSTEM CAPABILITIES                         │
 ├────────────────────────────────────────────────────────────────┤
 │                                                                │
-│  CONNECTION MANAGEMENT                                         │
-│  ├─ Register source and target database connections           │
+│  SERVER CONNECTION MANAGEMENT                                  │
+│  ├─ Register database server connections                      │
+│  ├─ Support multiple database types (Azure SQL, PostgreSQL,   │
+│  │   Oracle, SQL Server)                                      │
 │  ├─ Test connection validity before saving                    │
 │  ├─ Secure credential storage with encryption                 │
-│  └─ Support for multiple SQL Server instances                 │
+│  └─ Connection name validation (cannot match server name)     │
 │                                                                │
 │  SCHEMA EXPLORATION                                            │
 │  ├─ Browse available schemas in connected databases           │
@@ -88,26 +93,39 @@ Organizations need to comply with data privacy regulations (GDPR, CCPA, HIPAA) w
 │                                                                │
 │  WORKFLOW CONFIGURATION                                        │
 │  ├─ Create named workflows with descriptions                  │
-│  ├─ Select source and target connections                      │
-│  ├─ Map source tables to target tables                        │
+│  ├─ Select single connection for in-place masking             │
+│  ├─ Select schema and table for masking                       │
 │  ├─ Configure column-level PII masking rules                  │
 │  ├─ Smart filtering: Only show compatible masking options     │
 │  └─ Save/edit/delete workflow configurations                  │
 │                                                                │
-│  PII MASKING EXECUTION                                         │
-│  ├─ Extract data from source database                         │
+│  CONSTRAINT CHECKING                                           │
+│  ├─ Check primary key constraints                             │
+│  ├─ Check foreign key constraints                             │
+│  ├─ Check unique constraints                                  │
+│  ├─ Check check constraints                                   │
+│  ├─ Check triggers on table                                   │
+│  └─ Check indexes on table                                    │
+│                                                                │
+│  PREVIEW MASKING                                               │
+│  ├─ Preview masking on sample records                         │
+│  ├─ Configure number of preview records                       │
+│  ├─ View original vs masked data side-by-side                 │
+│  └─ Validate masking before execution                         │
+│                                                                │
+│  IN-PLACE PII MASKING EXECUTION                                │
+│  ├─ Execute masking directly on same table                    │
 │  ├─ Apply masking transformations based on rules              │
-│  ├─ Validate data integrity constraints                       │
-│  ├─ Load masked data into target database                     │
 │  ├─ Transaction management (rollback on failure)              │
-│  └─ Performance metrics (rows processed, duration)            │
+│  ├─ Performance metrics (rows processed, duration)            │
+│  └─ Detailed execution logs                                   │
 │                                                                │
 │  MONITORING & REPORTING                                        │
 │  ├─ View workflow execution history                           │
 │  ├─ Track success/failure status                              │
 │  ├─ Display error messages for failed executions              │
 │  ├─ Show row counts (processed vs masked)                     │
-│  ├─ Manual refresh of execution status                        │
+│  ├─ View execution logs                                       │
 │  └─ User attribution (who executed what)                      │
 │                                                                │
 │  SECURITY & COMPLIANCE                                         │
@@ -125,39 +143,46 @@ Organizations need to comply with data privacy regulations (GDPR, CCPA, HIPAA) w
 ```
 User Login
     ↓
-Dashboard (Overview of connections, workflows, executions)
+Dashboard (Overview of connections, workflows, recent executions)
     ↓
-    ├─→ Manage Connections
+    ├─→ Manage Server Connections
     │       ↓
-    │   Add/Test/Edit database connections
-    │
-    ├─→ Explore Schemas
+    │   Add Connection (Connection Details → Test Connection → Save)
     │       ↓
-    │   Browse database structures
+    │   View/Delete existing connections
     │
     ├─→ Create Workflow
     │       ↓
-    │   Step 1: Basic Info (name, connections)
+    │   Step 1: Basic Info (name, description)
     │       ↓
-    │   Step 2: Select source table and columns
+    │   Step 2: Select connection, schema, table
     │       ↓
-    │   Step 3: Map columns to PII masking techniques
-    │       ↓
-    │   Step 4: Configure target table
+    │   Step 3: Configure column mappings with PII attributes
     │       ↓
     │   Save Workflow
     │
+    ├─→ View Workflow Details
+    │       ↓
+    │   Overview Tab: Workflow configuration
+    │       ↓
+    │   Execution History Tab: Past executions
+    │       ↓
+    │   Preview Masking Tab:
+    │       ├─→ Column Mapping: View configured mappings
+    │       ├─→ Constraint Checks: Validate PKs, FKs, etc.
+    │       └─→ Preview Masking: See sample masked data
+    │
     ├─→ Execute Workflow
     │       ↓
-    │   Trigger execution
+    │   Trigger in-place masking
     │       ↓
     │   Monitor progress
     │       ↓
-    │   View results
+    │   View execution logs and results
     │
     └─→ View Execution History
             ↓
-        Audit and reporting
+        Audit trail and reporting
 ```
 
 ---
@@ -184,7 +209,7 @@ Dashboard (Overview of connections, workflows, executions)
 │  │  │ • Dashboard  │  │ • Tables     │  │  • Error Handle  │   │ │
 │  │  │ • Workflows  │  │ • Forms      │  │                  │   │ │
 │  │  │ • Connections│  │ • Dialogs    │  │                  │   │ │
-│  │  │              │  │              │  │                  │   │ │
+│  │  │ • Detail Page│  │ • Steppers   │  │                  │   │ │
 │  │  └──────────────┘  └──────────────┘  └──────────────────┘   │ │
 │  │                                                               │ │
 │  └───────────────────────────────────────────────────────────────┘ │
@@ -207,11 +232,12 @@ Dashboard (Overview of connections, workflows, executions)
 │  │  │              │  │   Routers    │  │   Logic          │   │ │
 │  │  │ • CORS       │  │              │  │                  │   │ │
 │  │  │ • JWT Verify │  │ • /auth      │  │ • DB Mgmt        │   │ │
-│  │  │ • Error      │  │ • /connections│ │ • Workflow Exec  │   │ │
-│  │  │   Handler    │  │ • /workflows │  │ • PII Masking    │   │ │
-│  │  │ • Logging    │  │ • /executions│  │ • Validation     │   │ │
-│  │  │              │  │ • /schemas   │  │ • Constraint     │   │ │
-│  │  │              │  │              │  │   Checking       │   │ │
+│  │  │ • Error      │  │ • /server/   │  │ • Workflow Exec  │   │ │
+│  │  │   Handler    │  │   connections│  │ • In-Place       │   │ │
+│  │  │ • Logging    │  │ • /server/   │  │   Masking        │   │ │
+│  │  │              │  │   workflows  │  │ • Constraint     │   │ │
+│  │  │              │  │ • /server/   │  │   Checking       │   │ │
+│  │  │              │  │   constraints│  │ • Preview        │   │ │
 │  │  └──────────────┘  └──────────────┘  └──────────────────┘   │ │
 │  │                                                               │ │
 │  └───────────────────────────────────────────────────────────────┘ │
@@ -226,22 +252,23 @@ Dashboard (Overview of connections, workflows, executions)
 │                      (Persistence Layer)                            │
 │  ┌───────────────────────────────────────────────────────────────┐ │
 │  │                                                               │ │
-│  │                  Microsoft SQL Server                         │ │
+│  │                  Database Servers                             │ │
+│  │         (Azure SQL, PostgreSQL, Oracle, SQL Server)           │ │
 │  │                                                               │ │
 │  │  ┌─────────────────────────┐    ┌─────────────────────────┐  │ │
 │  │  │                         │    │                         │  │ │
-│  │  │  Application Database   │    │   User Databases        │  │ │
-│  │  │  (Metadata Storage)     │    │   (Source/Target Data)  │  │ │
+│  │  │  Application Database   │    │   User Database         │  │ │
+│  │  │  (Metadata Storage)     │    │   (In-Place Masking)    │  │ │
 │  │  │                         │    │                         │  │ │
-│  │  │  Tables:                │    │  • Production DB        │  │ │
-│  │  │  • users                │    │  • UAT DB               │  │ │
-│  │  │  • connections          │    │  • Dev DB               │  │ │
-│  │  │  • workflows            │    │  • Test DB              │  │ │
-│  │  │  • workflow_mappings    │    │                         │  │ │
-│  │  │  • executions           │    │  Tables:                │  │ │
-│  │  │                         │    │  • User-defined tables  │  │ │
-│  │  │  Purpose:               │    │  • Business data        │  │ │
-│  │  │  Store system config    │    │  • Contains PII         │  │ │
+│  │  │  Tables:                │    │  Single database where  │  │ │
+│  │  │  • users                │    │  PII masking is applied │  │ │
+│  │  │  • server_connections   │    │  directly on same table │  │ │
+│  │  │  • server_workflows     │    │                         │  │ │
+│  │  │  • workflow_executions  │    │  Tables:                │  │ │
+│  │  │  • execution_logs       │    │  • User-defined tables  │  │ │
+│  │  │                         │    │  • Business data        │  │ │
+│  │  │  Purpose:               │    │  • Contains PII to mask │  │ │
+│  │  │  Store system config    │    │                         │  │ │
 │  │  │  and audit trail        │    │                         │  │ │
 │  │  │                         │    │                         │  │ │
 │  │  └─────────────────────────┘    └─────────────────────────┘  │ │
@@ -260,47 +287,6 @@ Dashboard (Overview of connections, workflows, executions)
 - **Technology Flexibility**: Replace or upgrade individual tiers without affecting others
 - **Security**: Multiple security checkpoints at each layer
 - **Maintainability**: Changes to one layer minimally impact other layers
-
-### 3.3 Tier Responsibilities
-
-#### **Client Tier (Presentation)**
-- **Responsibility**: User interface and user experience
-- **Key Functions**:
-  - Render user interfaces with Material-UI components
-  - Handle user interactions (clicks, form submissions)
-  - Client-side routing between pages
-  - Display data fetched from backend
-  - Form validation and error messages
-  - JWT token storage in browser localStorage
-- **Technology**: React JavaScript framework running in web browser
-- **Communication**: Makes HTTPS REST API calls to application tier
-
-#### **Application Tier (Business Logic)**
-- **Responsibility**: Business rules, authentication, and workflow orchestration
-- **Key Functions**:
-  - Authenticate users and issue JWT tokens
-  - Validate API requests and authorize access
-  - Implement PII masking algorithms
-  - Orchestrate ETL process (Extract, Transform, Load)
-  - Enforce business rules and constraints
-  - Manage database connections to user databases
-  - Log operations for audit trail
-- **Technology**: Python FastAPI framework running on application server
-- **Communication**:
-  - Receives HTTPS requests from client tier
-  - Makes SQL queries to data tier
-
-#### **Data Tier (Persistence)**
-- **Responsibility**: Data storage, integrity, and retrieval
-- **Key Functions**:
-  - Store application metadata (users, workflows, connections)
-  - Store execution history and audit logs
-  - Connect to user databases (source/target)
-  - Enforce database constraints (NOT NULL, UNIQUE, FK)
-  - Transaction management (ACID compliance)
-  - Query optimization and indexing
-- **Technology**: Microsoft SQL Server database
-- **Communication**: Receives SQL queries from application tier
 
 ---
 
@@ -392,18 +378,21 @@ Info        Selection   Mapping     Config
 
 **CreateWorkflowPage (Core Component)**
 - Multi-step wizard for workflow creation
-- **Step 1 - Basic Information**: Workflow name, description, source/target connections
-- **Step 2 - Source Selection**: Cascading dropdowns for schema, table, column selection
+- **Step 1 - Basic Information**: Workflow name, description
+- **Step 2 - Connection & Table Selection**: Select connection, schema, and table for in-place masking
 - **Step 3 - Column Mapping** (CRITICAL): Smart filtering shows only compatible PII attributes based on column data types
-- **Step 4 - Target Configuration**: Select target schema and table, review mappings
+- Review and save workflow configuration
 
 **WorkflowDetailPage**
-- Displays comprehensive workflow information
-- Shows configuration details and column mapping rules
-- Execution history table with metrics
-- Back button with circular hover effect
-- Run Workflow button for on-demand execution
-- Manual refresh button (no automatic polling)
+- Displays comprehensive workflow information with tabbed interface
+- **Overview Tab**: Workflow configuration, status, and actions
+- **Execution History Tab**: Past executions with metrics and logs
+- **Preview Masking Tab**:
+  - Column Mapping: View configured column mappings
+  - Constraint Checks: Validate PKs, FKs, unique, check constraints, triggers, indexes
+  - Preview Masking: See sample masked data before execution
+- Back button with navigation to workflows list
+- Execute Workflow button for on-demand execution
 
 ### 4.3 Backend Component Structure
 
@@ -454,24 +443,26 @@ Info        Selection   Mapping     Config
 - **CORS Middleware**: Validates request origin, allows only frontend URL
 - **JWT Authentication Middleware**: Decodes and validates JWT token, extracts user information
 - **Error Handler Middleware**: Catches exceptions and formats error responses consistently
-- **Logging Middleware**: Logs all API requests with timestamp, user, and endpoint
 
 #### **API Routers**
 - **Auth Router** (`/api/auth`): Login, user profile retrieval
-- **Connections Router** (`/api/connections`): Connection CRUD, testing, schema/table discovery
-- **Workflows Router** (`/api/workflows`): Workflow CRUD, execution triggering
-- **Executions Router** (`/api/executions`): Execution history and status monitoring
-- **PII Attributes Router** (`/api/pii-attributes`): Return categorized masking techniques
+- **Server Connections Router** (`/api/server/connections`): Connection CRUD, testing, schema/table discovery
+- **Server Workflows Router** (`/api/server/workflows`): Workflow CRUD, execution triggering, preview masking
+- **Server Constraints Router** (`/api/server/constraints`): Check PKs, FKs, unique, check constraints, triggers, indexes
+- **Server Masking Router** (`/api/server/masking`): Preview masking, execute in-place masking
+- **Workflows Router** (`/api/workflows`): PII attributes retrieval
 
 #### **Business Services Layer**
 
-**Database Manager Service**: Establishes connections to SQL Server databases, manages connection pooling, executes parameterized queries, handles connection errors with retries.
+**Database Manager Service**: Establishes connections to database servers (Azure SQL, PostgreSQL, Oracle, SQL Server), manages connection pooling, executes parameterized queries, handles connection errors with retries.
 
-**Workflow Executor Service**: Orchestrates the ETL process - loads configuration, connects to databases, extracts source data, applies masking transformations, validates constraints, loads to target, logs results.
+**Workflow Executor Service**: Orchestrates in-place masking - loads configuration, connects to database, applies masking transformations directly to the same table using UPDATE statements, logs results.
 
 **Masking Engine Service**: Implements PII masking algorithms including string masking (fake names, emails, phones), numeric masking (random numbers, ranges), date/datetime masking (shifting), boolean masking.
 
-**Validator Service**: Validates data integrity before insertion including NOT NULL checks, data type compatibility, UNIQUE constraints, referential integrity.
+**Constraint Checker Service**: Validates database constraints before masking including primary keys, foreign keys, unique constraints, check constraints, triggers, and indexes.
+
+**Preview Service**: Generates preview of masked data on sample records before actual execution.
 
 ---
 
@@ -535,9 +526,9 @@ User                Frontend            Backend           Database
 ### 5.2 Workflow Creation Flow
 
 ```
-WORKFLOW CREATION FLOW
+WORKFLOW CREATION FLOW (In-Place Masking)
 
-User          Frontend         Backend        App DB      Source DB
+User          Frontend         Backend        App DB      User DB
  │                │                │              │            │
  │  Navigate to   │                │              │            │
  │  Create Page   │                │              │            │
@@ -545,7 +536,8 @@ User          Frontend         Backend        App DB      Source DB
                   │  Load Initial  │              │            │
                   │  Data          │              │            │
                   │                │              │            │
-                  │  GET /connections             │            │
+                  │  GET /server/  │              │            │
+                  │  connections   │              │            │
                   ├────────────────>              │            │
                   │                │  Query       │            │
                   │                │  connections │            │
@@ -554,8 +546,8 @@ User          Frontend         Backend        App DB      Source DB
                   │  List          │<─────────────│            │
                   │<────────────────              │            │
                   │                │              │            │
-                  │  GET /pii-     │              │            │
-                  │  attributes    │              │            │
+                  │  GET /workflows│              │            │
+                  │  /pii-attributes              │            │
                   ├────────────────>              │            │
                   │  Categorized   │              │            │
                   │  PII List      │              │            │
@@ -563,18 +555,23 @@ User          Frontend         Backend        App DB      Source DB
                   │                │              │            │
  │  STEP 1:       │                │              │            │
  │  Fill Basic    │                │              │            │
- │  Info          │                │              │            │
+ │  Info (name,   │                │              │            │
+ │  description)  │                │              │            │
  ├───────────────>│                │              │            │
                   │  Validate &    │              │            │
                   │  Move to Step2 │              │            │
                   │                │              │            │
  │  STEP 2:       │                │              │            │
- │  Select Schema │                │              │            │
+ │  Select        │                │              │            │
+ │  Connection,   │                │              │            │
+ │  Schema, Table │                │              │            │
  ├───────────────>│                │              │            │
-                  │  GET /schemas  │              │            │
+                  │  GET /server/  │              │            │
+                  │  connections/  │              │            │
+                  │  {id}/schemas  │              │            │
                   ├────────────────>              │            │
                   │                │  Connect to  │            │
-                  │                │  source DB   │            │
+                  │                │  user DB     │            │
                   │                ├──────────────┼──────────->│
                   │                │  Schema list │            │
                   │  Schema List   │<─────────────┼────────────│
@@ -591,11 +588,11 @@ User          Frontend         Backend        App DB      Source DB
                   │                │              │            │
  │  Submit        │                │              │            │
  ├───────────────>│                │              │            │
-                  │  POST          │              │            │
-                  │  /workflows    │              │            │
+                  │  POST /server/ │              │            │
+                  │  workflows     │              │            │
                   ├────────────────>              │            │
                   │                │  INSERT      │            │
-                  │                │  workflows & │            │
+                  │                │  workflow &  │            │
                   │                │  mappings    │            │
                   │                ├────────────->│            │
                   │  Success       │  Workflow ID │            │
@@ -607,109 +604,93 @@ User          Frontend         Backend        App DB      Source DB
 
 **Flow Description:**
 
-**Initial Load**: Frontend fetches connections and categorized PII attributes from backend.
+**Initial Load**: Frontend fetches server connections and categorized PII attributes from backend.
 
-**Step 1 - Basic Information**: User provides workflow name, description, and selects source/target connections.
+**Step 1 - Basic Information**: User provides workflow name and description.
 
-**Step 2 - Source Selection**: Cascading API calls load schemas, then tables, then column metadata with data types.
+**Step 2 - Connection & Table Selection**: User selects connection, then cascading API calls load schemas, then tables, then column metadata with data types for in-place masking.
 
 **Step 3 - Column Mapping (Smart Filtering)**: For each selected column, frontend identifies data type, maps to PII category, filters dropdown to show only compatible masking options.
 
-**Submission**: Frontend sends complete configuration to backend. Backend creates workflow and mapping records in transaction.
+**Submission**: Frontend sends complete configuration to backend. Backend creates workflow record with column mappings in transaction.
 
 ---
 
-### 5.3 Workflow Execution Flow
+### 5.3 Workflow Execution Flow (In-Place Masking)
 
 ```
-WORKFLOW EXECUTION FLOW
+IN-PLACE MASKING EXECUTION FLOW
 
-User   Frontend   Backend     App DB    Source DB  Target DB
- │        │          │            │          │          │
- │  Click │          │            │          │          │
- │  Run   │          │            │          │          │
- ├────────>│          │            │          │          │
-          │  POST    │            │          │          │
-          │  /execute│            │          │          │
-          ├─────────>│            │          │          │
-                     │            │          │          │
+User   Frontend   Backend     App DB       User DB
+ │        │          │            │            │
+ │  Click │          │            │            │
+ │ Execute│          │            │            │
+ ├───────>│          │            │            │
+          │  POST    │            │            │
+          │  /server/│            │            │
+          │ workflows│            │            │
+          │  /{id}/  │            │            │
+          │  execute │            │            │
+          ├─────────>│            │            │
+                     │            │            │
                      │  PHASE 1: INITIALIZATION          │
-                     ├──────────->│          │          │
-                     │  Load      │          │          │
-                     │  workflow  │          │          │
-                     │  config    │          │          │
-                     │  Create    │          │          │
-                     │  exec rec  │          │          │
-          │  exec_id │<───────────│          │          │
-          │<─────────│            │          │          │
- │  Show  │          │            │          │          │
- │  Started│         │            │          │          │
- │<───────│          │            │          │          │
-          │          │            │          │          │
-          │          │  PHASE 2: DATA EXTRACTION         │
-          │          ├──────────->├────────->│          │
-          │          │  SELECT *  │          │          │
-          │          │  FROM      │          │          │
-          │          │  source    │          │          │
-          │          │  Result set│          │          │
-          │          │<───────────│<─────────│          │
-          │          │            │          │          │
-          │          │  PHASE 3: TRANSFORMATION          │
-          │          │  For each row:       │          │
-          │          │  - Apply PII masking │          │
-          │          │  - first_name: John  │          │
-          │          │    -> Michael        │          │
-          │          │  - age: 30 -> 42     │          │
-          │          │  - birth_date shifted│          │
-          │          │            │          │          │
-          │          │  PHASE 4: VALIDATION │          │
-          │          │  - NOT NULL checks   │          │
-          │          │  - Data type checks  │          │
-          │          │  - UNIQUE checks     │          │
-          │          │            │          │          │
-          │          │  PHASE 5: DATA LOADING           │
-          │          ├──────────->├────────->├────────->│
-          │          │  INSERT    │          │          │
-          │          │  masked    │          │          │
-          │          │  data      │          │          │
-          │          │  COMMIT    │          │          │
-          │          │<───────────│<─────────│<─────────│
-          │          │            │          │          │
-          │          │  PHASE 6: COMPLETION │          │
-          │          ├──────────->│          │          │
-          │          │  Update    │          │          │
-          │          │  exec      │          │          │
-          │          │  status:   │          │          │
-          │          │  success   │          │          │
-          │          │<───────────│          │          │
-          │          │            │          │          │
- │  Click │          │            │          │          │
- │  Refresh│         │            │          │          │
- ├────────>│          │            │          │          │
-          │  GET     │            │          │          │
-          │  /executions          │          │          │
-          ├─────────>├──────────->│          │          │
-          │  Updated │  Query     │          │          │
-          │  history │  executions│          │          │
-          │<─────────│<───────────│          │          │
- │  Display│         │            │          │          │
- │  Success│         │            │          │          │
- │<────────│         │            │          │          │
+                     ├──────────->│            │
+                     │  Load      │            │
+                     │  workflow  │            │
+                     │  config    │            │
+                     │  Create    │            │
+                     │  exec rec  │            │
+          │  exec_id │<───────────│            │
+          │<─────────│            │            │
+ │  Show  │          │            │            │
+ │  Started│         │            │            │
+ │<───────│          │            │            │
+          │          │            │            │
+          │          │  PHASE 2: IN-PLACE MASKING        │
+          │          ├──────────->├──────────->│
+          │          │  UPDATE    │            │
+          │          │  table SET │            │
+          │          │  col1 =    │            │
+          │          │  masked_val│            │
+          │          │  col2 =    │            │
+          │          │  masked_val│            │
+          │          │  ...       │            │
+          │          │  COMMIT    │            │
+          │          │<───────────│<───────────│
+          │          │            │            │
+          │          │  PHASE 3: LOGGING       │
+          │          ├──────────->│            │
+          │          │  Log rows  │            │
+          │          │  processed │            │
+          │          │  and masked│            │
+          │          │<───────────│            │
+          │          │            │            │
+          │          │  PHASE 4: COMPLETION    │
+          │          ├──────────->│            │
+          │          │  Update    │            │
+          │          │  exec      │            │
+          │          │  status:   │            │
+          │          │  success   │            │
+          │          │<───────────│            │
+          │          │            │            │
+ │  View  │          │            │            │
+ │  Logs  │          │            │            │
+ ├────────>│          │            │            │
+          │  GET     │            │            │
+          │  /server/│            │            │
+          │  workflows│           │            │
+          │  /{id}/  │            │            │
+          │  executions           │            │
+          ├─────────>├──────────->│            │
+          │  Execution│ Query     │            │
+          │  history │  logs      │            │
+          │<─────────│<───────────│            │
+ │  Display│         │            │            │
+ │  Results│         │            │            │
+ │<────────│         │            │            │
 ```
 
-**Flow Description:**
 
-**Phase 1 - Initialization**: Backend loads workflow configuration, retrieves connection credentials, creates execution record with status "running", returns execution_id immediately.
-
-**Phase 2 - Data Extraction**: Backend connects to source database, executes SELECT query, fetches all rows, counts rows_processed.
-
-**Phase 3 - Data Transformation**: For each row, backend applies PII masking. Examples: first_name "John" → "Michael", age 30 → random 42, birth_date shifted by random days.
-
-**Phase 4 - Constraint Validation**: Backend validates NOT NULL constraints, data type compatibility, UNIQUE constraints. If any validation fails, execution stops and marked "failed".
-
-**Phase 5 - Data Loading**: Backend connects to target database, begins transaction, inserts masked data in batches (100 rows per batch), commits transaction.
-
-**Phase 6 - Completion**: Backend updates execution record with final status, row counts, completion time. User clicks manual refresh to see updated history.
 
 ---
 
@@ -772,9 +753,7 @@ bit/boolean       -> boolean   -> random_boolean
 
 **Flow Description:**
 
-**Problem**: Without filtering, users could create invalid mappings like applying "first_name" (string) to an integer column.
-
-**Solution**: Frontend automatically filters PII options based on column data type.
+Frontend automatically filters PII options based on column data type.
 
 **Process**:
 1. Column Selection: User checks checkbox for column (e.g., "age")
@@ -787,426 +766,11 @@ bit/boolean       -> boolean   -> random_boolean
 
 ---
 
-## 6. TECHNOLOGY STACK
-
-### 6.1 Technology Architecture
-
-```
-TECHNOLOGY LAYERS
-
-┌─────────────────────────────────────────────────────────┐
-│                  PRESENTATION LAYER                     │
-├─────────────────────────────────────────────────────────┤
-│  React 18.3.1           Material-UI v5                  │
-│  JavaScript Library     UI Component Library            │
-│  • Virtual DOM          • Pre-built components          │
-│  • Component-based      • Material Design               │
-│  • Hooks for state      • Responsive layouts            │
-│                                                         │
-│  React Router v6        Axios                           │
-│  Client Routing         HTTP Client                     │
-│  • SPA navigation       • Promise-based                 │
-│  • No page reloads      • Request/response interceptors │
-└─────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────┐
-│                  APPLICATION LAYER                      │
-├─────────────────────────────────────────────────────────┤
-│  FastAPI (Python)       Pydantic                        │
-│  Web Framework          Data Validation                 │
-│  • High performance     • Type checking                 │
-│  • Auto OpenAPI docs    • Request validation            │
-│  • Async support        • Schema generation             │
-│                                                         │
-│  PyJWT                  pyodbc                          │
-│  Authentication         Database Driver                 │
-│  • Token generation     • SQL Server connection         │
-│  • Token validation     • ODBC protocol                 │
-│                                                         │
-│  Uvicorn               Gunicorn (Production)            │
-│  ASGI Server           Process Manager                  │
-│  • Async handling      • Multi-worker                   │
-│  • Fast I/O            • Auto-restart                   │
-└─────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────┐
-│                      DATA LAYER                         │
-├─────────────────────────────────────────────────────────┤
-│  Microsoft SQL Server 2016+                             │
-│  • ACID transactions    • Query optimization            │
-│  • Referential integrity• Indexes for performance       │
-│  • Constraint enforcement                               │
-│  • Backup and recovery  • High availability (Always-On) │
-│                                                         │
-│  ODBC Driver 17 for SQL Server                          │
-│  • Native SQL Server protocol                           │
-│  • SSL/TLS encryption   • Connection pooling            │
-└─────────────────────────────────────────────────────────┘
-```
-
-### 6.2 Technology Selection Rationale
-
-#### **Frontend Technologies**
-
-**React 18.3.1**
-- **Why Chosen**: Industry-standard JavaScript library for building user interfaces
-- **Benefits**: Component reusability, virtual DOM for fast updates, large ecosystem, strong community support, hooks simplify state management
-- **Use Cases**: Interactive forms, managing complex UI state, real-time updates
-
-**Material-UI (MUI) v5**
-- **Why Chosen**: Comprehensive React component library implementing Material Design
-- **Benefits**: Professional consistent UI, responsive components, accessible WCAG-compliant, customizable theming, pre-built complex components
-- **Use Cases**: Data tables, multi-step wizard, dialogs, navigation components
-
-**React Router v6**
-- **Why Chosen**: Standard routing library for React SPAs
-- **Benefits**: Client-side navigation without page reloads, dynamic route parameters, route protection, nested routing
-- **Use Cases**: Protecting routes, dynamic workflow detail pages, multi-step navigation
-
-**Axios**
-- **Why Chosen**: Popular promise-based HTTP client
-- **Benefits**: Request/response interceptors, automatic JSON transformation, error handling, better API than fetch()
-- **Use Cases**: All API communication, automatic JWT injection, global error handling
-
-#### **Backend Technologies**
-
-**FastAPI (Python)**
-- **Why Chosen**: Modern, high-performance Python web framework
-- **Benefits**: Automatic OpenAPI documentation, type hints, async support, fast performance, built-in validation, Python ecosystem
-- **Use Cases**: REST API endpoints, PII masking algorithms, workflow execution engine
-
-**Pydantic**
-- **Why Chosen**: Data validation using Python type annotations
-- **Benefits**: Automatic request validation, clear error messages, schema generation, type safety
-- **Use Cases**: Validate workflow payloads, ensure correct data types, generate API docs
-
-**PyJWT**
-- **Why Chosen**: Industry-standard JWT implementation
-- **Benefits**: Stateless authentication, cryptographically signed tokens, configurable expiration, cross-domain compatible
-- **Use Cases**: Generate JWT tokens on login, validate tokens on requests, extract user information
-
-**pyodbc**
-- **Why Chosen**: Python database driver for ODBC connections
-- **Benefits**: Native SQL Server support, parameterized queries prevent SQL injection, connection pooling, platform independent
-- **Use Cases**: Connect to databases, execute queries, schema discovery, masking transformations
-
-#### **Database Technology**
-
-**Microsoft SQL Server 2016+**
-- **Why Chosen**: Enterprise-grade RDBMS
-- **Benefits**: ACID compliance, robust transaction support, advanced query optimizer, rich constraint system, high availability, enterprise support
-- **Use Cases**: Store application metadata, audit trail, source databases (production with PII), target databases (masked data)
-
----
-
-## 7. DATABASE DESIGN
-
-### 7.1 Entity Relationship Diagram
-
-```
-APPLICATION DATABASE ER DIAGRAM
-
-                ┌──────────────────┐
-                │      users       │
-                ├──────────────────┤
-                │ PK  id           │
-                │     username     │
-                │     password_hash│
-                │     email        │
-                │     role         │
-                │     created_at   │
-                └────────┬─────────┘
-                         │
-                         │ 1:N (creates)
-                         │
-        ┌────────────────┼────────────────┐
-        │                │                │
-        ▼                ▼                ▼
-┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│ connections  │  │  workflows   │  │  executions  │
-├──────────────┤  ├──────────────┤  ├──────────────┤
-│ PK  id       │  │ PK  id       │  │ PK  id       │
-│     name     │◄─┤ FK  source_  │  │ FK  workflow_│
-│     type     │  │     conn_id  │  │     id       │
-│     server   │  │ FK  target_  │  │     status   │
-│     database │  │     conn_id  │──┤     rows_    │
-│     username │  │     status   │  │     processed│
-│     password │  │ FK  created_ │  │     rows_    │
-│ FK  created_ │  │     by       │  │     masked   │
-│     by       │  │     created_ │  │     error_   │
-│     created_ │  │     at       │  │     message  │
-│     at       │  └──────┬───────┘  │     started_ │
-└──────────────┘         │          │     at       │
-                         │ 1:N      │     completed│
-                         │          │     _at      │
-                         ▼          │ FK  executed_│
-              ┌──────────────────┐  │     by       │
-              │ workflow_mappings│  └──────────────┘
-              ├──────────────────┤
-              │ PK  id           │
-              │ FK  workflow_id  │
-              │     source_      │
-              │     schema       │
-              │     source_table │
-              │     target_      │
-              │     schema       │
-              │     target_table │
-              │     column_      │
-              │     mappings     │
-              │     (JSON)       │
-              │     created_at   │
-              └──────────────────┘
-```
-
-**Relationship Cardinality:**
-- users (1) ───< (N) connections: One user can create multiple database connections
-- users (1) ───< (N) workflows: One user can create multiple workflows
-- users (1) ───< (N) executions: One user can trigger multiple executions
-- connections (1) ───< (N) workflows (as source): One connection can be source for multiple workflows
-- connections (1) ───< (N) workflows (as target): One connection can be target for multiple workflows
-- workflows (1) ───< (N) workflow_mappings: One workflow can have multiple table mappings
-- workflows (1) ───< (N) executions: One workflow can have multiple execution history records
-
-### 7.2 Database Schema Descriptions
-
-#### **Table: users**
-**Purpose**: Store user account information for authentication and authorization
-
-**Columns**:
-- `id` (PK, INT, Auto-increment): Unique user identifier
-- `username` (VARCHAR(50), UNIQUE, NOT NULL): Login username
-- `password_hash` (VARCHAR(255), NOT NULL): Bcrypt hashed password (never plaintext)
-- `email` (VARCHAR(100), UNIQUE): User email address for notifications
-- `role` (VARCHAR(20), NOT NULL, DEFAULT 'user'): Permission level ('admin' or 'user')
-- `created_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP): Account creation timestamp
-
-**Constraints**: Username must be unique, role must be either 'admin' or 'user', password hash must use secure hashing (bcrypt with cost factor 12)
-
-**Indexes**: Primary key on id, unique index on username for fast login lookups, unique index on email
-
----
-
-#### **Table: connections**
-**Purpose**: Store database connection configurations for both source and target databases
-
-**Columns**:
-- `id` (PK, INT, Auto-increment): Unique connection identifier
-- `name` (VARCHAR(100), UNIQUE, NOT NULL): User-friendly connection name
-- `connection_type` (VARCHAR(10), NOT NULL): 'source' (read from) or 'target' (write to)
-- `server` (VARCHAR(255), NOT NULL): SQL Server hostname or IP address
-- `database_name` (VARCHAR(128), NOT NULL): Database name on the server
-- `username` (VARCHAR(128), NOT NULL): Database authentication username
-- `password` (VARCHAR(255), NOT NULL): Encrypted database password (AES-256)
-- `created_by` (FK → users.id, NOT NULL): User who created this connection
-- `created_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP): Creation timestamp
-
-**Constraints**: Connection name must be unique, connection type must be 'source' or 'target', foreign key to users table, password encrypted at rest
-
-**Security Notes**: Passwords are encrypted using AES-256 with encryption key stored in environment variables. Passwords never returned in API responses (masked with '******').
-
----
-
-#### **Table: workflows**
-**Purpose**: Store workflow configuration metadata (high-level workflow information)
-
-**Columns**:
-- `id` (PK, INT, Auto-increment): Unique workflow identifier
-- `name` (VARCHAR(100), UNIQUE, NOT NULL): User-friendly workflow name
-- `description` (TEXT): Optional description of workflow purpose
-- `status` (VARCHAR(20), NOT NULL, DEFAULT 'active'): 'active' or 'inactive'
-- `source_connection_id` (FK → connections.id, NOT NULL): Source database connection
-- `target_connection_id` (FK → connections.id, NOT NULL): Target database connection
-- `created_by` (FK → users.id, NOT NULL): User who created workflow
-- `created_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP): Creation timestamp
-- `updated_at` (DATETIME): Last modification timestamp
-
-**Constraints**: Workflow name must be unique, status must be 'active' or 'inactive', source and target connections must be different (CHECK constraint), foreign keys to connections and users tables
-
-**Business Rules**: Only active workflows can be executed, source and target connections cannot be the same database
-
----
-
-#### **Table: workflow_mappings**
-**Purpose**: Store detailed table and column mapping rules for workflows
-
-**Columns**:
-- `id` (PK, INT, Auto-increment): Unique mapping identifier
-- `workflow_id` (FK → workflows.id, NOT NULL): Parent workflow
-- `source_schema` (VARCHAR(128), NOT NULL): Source database schema name (e.g., 'dbo')
-- `source_table` (VARCHAR(128), NOT NULL): Source table name
-- `target_schema` (VARCHAR(128), NOT NULL): Target database schema name
-- `target_table` (VARCHAR(128), NOT NULL): Target table name
-- `column_mappings` (NVARCHAR(MAX), NOT NULL): JSON array of column mapping rules
-- `created_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP): Creation timestamp
-
-**Constraints**: Foreign key to workflows table with CASCADE DELETE, column_mappings must be valid JSON (CHECK constraint: ISJSON(column_mappings) = 1)
-
-**JSON Structure for column_mappings**:
-```json
-[
-  {
-    "source_column": "first_name",
-    "pii_attribute": "first_name",
-    "target_column": "first_name",
-    "data_type": "varchar"
-  },
-  {
-    "source_column": "age",
-    "pii_attribute": "random_number",
-    "target_column": "age",
-    "data_type": "int"
-  }
-]
-```
-
-**Why JSON Column**: Flexible for different numbers of columns across tables, no schema changes needed when adding new PII attributes, easy to query and parse in application code, SQL Server provides native JSON functions.
-
----
-
-#### **Table: executions**
-**Purpose**: Store workflow execution history and audit trail
-
-**Columns**:
-- `id` (PK, INT, Auto-increment): Unique execution identifier
-- `workflow_id` (FK → workflows.id, NOT NULL): Workflow that was executed
-- `status` (VARCHAR(20), NOT NULL, DEFAULT 'running'): 'running', 'success', or 'failed'
-- `rows_processed` (INT, DEFAULT 0): Total rows read from source database
-- `rows_masked` (INT, DEFAULT 0): Total rows successfully masked and written
-- `error_message` (TEXT): Error details if status is 'failed'
-- `started_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP): Execution start time
-- `completed_at` (DATETIME): Execution completion time (NULL while running)
-- `executed_by` (FK → users.id, NOT NULL): User who triggered execution
-
-**Constraints**: Foreign keys to workflows and users tables with CASCADE DELETE, status must be 'running', 'success', or 'failed', rows_masked cannot exceed rows_processed (CHECK constraint)
-
-**Audit Trail**: Every execution creates a permanent record, complete history preserved even if workflow is modified, user attribution for compliance and accountability, error messages stored for troubleshooting.
-
----
-
-### 7.3 Data Integrity Rules
-
-**Referential Integrity**: All foreign keys enforced at database level. Prevents orphaned records (e.g., execution without workflow). Cascade delete for dependent data (mappings, executions).
-
-**Constraint Validation**: NOT NULL constraints ensure required data is always present. UNIQUE constraints prevent duplicate names/usernames. CHECK constraints validate enum values (status, role, connection_type). CHECK constraints ensure logical consistency (e.g., rows_masked ≤ rows_processed).
-
-**Data Quality Rules**: Passwords must be hashed before storage. Connection credentials encrypted at rest. JSON columns validated for correct structure. Timestamps automatically managed by database.
-
 ---
 
 ## 8. SECURITY ARCHITECTURE
 
-### 8.1 Security Layers Overview
-
-```
-SECURITY ARCHITECTURE (Defense in Depth)
-
-Layer 7: Physical Security
-├─ Data center access controls
-├─ Server room security
-└─ Hardware security modules (HSM)
-        ↓
-Layer 6: Network Security
-├─ Firewall rules (restrict database ports)
-├─ VPN requirement for remote access
-├─ Network segmentation (DMZ for web tier)
-└─ DDoS protection
-        ↓
-Layer 5: Transport Security
-├─ HTTPS/TLS 1.3 for all web traffic
-├─ SSL/TLS for database connections
-├─ Certificate validation
-└─ Strong cipher suites only
-        ↓
-Layer 4: Application Authentication
-├─ JWT token-based authentication
-├─ Token expiration (24 hours)
-├─ Automatic logout on expiration
-├─ Password hashing (bcrypt, cost factor 12)
-└─ No plaintext passwords stored or transmitted
-        ↓
-Layer 3: Authorization (RBAC)
-├─ Role-based access control (Admin/User)
-├─ Resource ownership validation
-├─ Permission checks on every API endpoint
-└─ Principle of least privilege
-        ↓
-Layer 2: Data Protection
-├─ Database credentials encrypted at rest (AES-256)
-├─ PII data masked during transformation
-├─ No sensitive data in logs
-└─ Encrypted backups
-        ↓
-Layer 1: Application Security
-├─ SQL injection prevention (parameterized queries)
-├─ XSS protection (input sanitization)
-├─ CSRF protection (SameSite cookies)
-├─ Input validation on all endpoints
-├─ Output encoding
-└─ Security headers (CSP, X-Frame-Options)
-        ↓
-Layer 0: Audit & Monitoring
-├─ Complete audit trail (who, what, when)
-├─ Failed login attempt logging
-├─ Security event monitoring
-├─ Alerting on suspicious activity
-└─ Compliance reporting
-```
-
-### 8.2 Authentication Architecture
-
-```
-JWT TOKEN AUTHENTICATION FLOW
-
-User Credentials
-      │
-      ├─ Username: Plain text
-      └─ Password: Plain text
-      │
-      ▼
-HTTPS Transport (Encrypted in flight)
-      │
-      ▼
-Backend Receives Login Request
-      │
-      ▼
-Query users table WHERE username = ?
-      │
-      ▼
-Compare Password Hash
-bcrypt.compare(input_password, stored_hash)
-      │
-      ├─ MATCH ──────────────────────┐
-      │                               │
-      ▼                               ▼
-Generate JWT Token            Return 401 Unauthorized
-      │
-      ├─ Header: {"alg": "HS256", "typ": "JWT"}
-      ├─ Payload: {user_id, username, role, exp}
-      └─ Signature: HMACSHA256(header + payload, SECRET_KEY)
-      │
-      ▼
-Return Token to Frontend
-      │
-      ▼
-Frontend Stores in localStorage
-      │
-      ▼
-All Subsequent Requests Include:
-Authorization: Bearer <JWT_TOKEN>
-      │
-      ▼
-Backend JWT Middleware:
-1. Extract token
-2. Verify signature
-3. Check expiration
-4. Decode payload
-5. Extract user context
-      │
-      ├─ VALID ──> Process Request
-      └─ INVALID ─> Return 401
-```
-
-### 8.3 Authentication Security Features
+### 8.1 Authentication Security Features
 
 **Password Security:**
 - Passwords hashed using bcrypt with salt (cost factor: 12 rounds)
@@ -1217,7 +781,6 @@ Backend JWT Middleware:
 **Token Security:**
 - JWT signed with HMAC-SHA256 algorithm
 - Secret key stored in environment variables (never in code)
-- Different secret keys for dev/staging/production
 - Token expiration enforced (24-hour default)
 - Automatic logout on token expiration
 - Token includes user role for authorization
@@ -1228,61 +791,6 @@ Backend JWT Middleware:
 - Frontend clears token on logout
 - Expired tokens automatically rejected by backend
 
-### 8.4 Authorization (RBAC) Architecture
-
-```
-ROLE-BASED ACCESS CONTROL (RBAC) MODEL
-
-                ┌──────────────┐
-                │    Users     │
-                └──────┬───────┘
-                       │
-            ┌──────────┴──────────┐
-            │                     │
-            ▼                     ▼
-     ┌────────────┐        ┌────────────┐
-     │ Admin Role │        │ User Role  │
-     └─────┬──────┘        └─────┬──────┘
-           │                     │
-           ▼                     ▼
-    All Permissions       Own Resources Only
-
-PERMISSION MATRIX:
-
-Resource / Action         | Admin | User | Guest
-─────────────────────────┼───────┼──────┼───────
-Login / Logout            │   ✓   │  ✓   │   ✓
-View own profile          │   ✓   │  ✓   │   ✗
-                          │       │      │
-CONNECTIONS:              │       │      │
-View all connections      │   ✓   │  ✓   │   ✗
-Create connection         │   ✓   │  ✓   │   ✗
-Edit own connection       │   ✓   │  ✓   │   ✗
-Edit others' connection   │   ✓   │  ✗   │   ✗
-Delete own connection     │   ✓   │  ✓   │   ✗
-Delete others' connection │   ✓   │  ✗   │   ✗
-Test connection           │   ✓   │  ✓   │   ✗
-                          │       │      │
-WORKFLOWS:                │       │      │
-View all workflows        │   ✓   │  ✓   │   ✗
-Create workflow           │   ✓   │  ✓   │   ✗
-Edit own workflow         │   ✓   │  ✓   │   ✗
-Edit others' workflow     │   ✓   │  ✗   │   ✗
-Delete own workflow       │   ✓   │  ✓   │   ✗
-Delete others' workflow   │   ✓   │  ✗   │   ✗
-Execute own workflow      │   ✓   │  ✓   │   ✗
-Execute others' workflow  │   ✓   │  ✗   │   ✗
-                          │       │      │
-EXECUTIONS:               │       │      │
-View all execution history│   ✓   │  ✗   │   ✗
-View own execution history│   ✓   │  ✓   │   ✗
-                          │       │      │
-SYSTEM:                   │       │      │
-View system logs          │   ✓   │  ✗   │   ✗
-Manage users              │   ✓   │  ✗   │   ✗
-Change system settings    │   ✓   │  ✗   │   ✗
-View audit trail          │   ✓   │  ✗   │   ✗
-```
 
 **Benefits of RBAC:**
 - Simplified permission management
@@ -1304,70 +812,6 @@ User passwords in `users.password_hash` are hashed using bcrypt with automatic r
 **Encryption in Transit:**
 
 All client-server communication uses HTTPS/TLS 1.3. The TLS handshake includes client hello with supported ciphers, server hello with chosen cipher and certificate containing public key. Client verifies certificate, generates session keys, and encrypts them with server's public key. Both sides derive symmetric session keys. All subsequent data is encrypted including API requests, responses, JWT tokens, and passwords during login.
-
-### 8.6 Application Security Measures
-
-**SQL Injection Prevention**: All database queries use parameterized statements. User input never concatenated into SQL strings. ORM/query builder enforces parameterization. Database permissions follow least privilege principle.
-
-**Cross-Site Scripting (XSS) Prevention**: React automatically escapes output (prevents XSS by default). User input sanitized before storage. Content Security Policy (CSP) headers. No use of dangerous functions (dangerouslySetInnerHTML).
-
-**Cross-Site Request Forgery (CSRF) Prevention**: SameSite cookie attribute set to Strict. JWT tokens in Authorization header (not cookies). State-changing operations require valid JWT. No GET requests for state changes.
-
-**Input Validation**: Frontend validation for user experience. Backend validation for security (never trust client). Type checking with Pydantic models. Length limits on all text fields. Whitelist validation for enums.
-
-**Security Headers**: X-Content-Type-Options: nosniff, X-Frame-Options: DENY, X-XSS-Protection: 1; mode=block, Strict-Transport-Security: max-age=31536000, Content-Security-Policy: default-src 'self'.
-
-### 8.7 Audit Trail
-
-```
-AUDIT TRAIL SYSTEM
-
-Every User Action Logged:
-
-┌──────────────────────────────────────────────────────┐
-│ AUDIT LOG ENTRY                                      │
-├──────────────────────────────────────────────────────┤
-│ • Timestamp: 2025-01-15 14:30:45.123                │
-│ • User ID: 123                                       │
-│ • Username: john.doe                                 │
-│ • Role: user                                         │
-│ • Action: EXECUTE_WORKFLOW                           │
-│ • Resource: workflow_id=456                          │
-│ • IP Address: 192.168.1.100                          │
-│ • User Agent: Chrome/120.0 Windows                   │
-│ • Status: SUCCESS                                    │
-│ • Details: Processed 1000 rows, masked 1000 rows    │
-│ • Duration: 150 seconds                              │
-└──────────────────────────────────────────────────────┘
-
-Logged Actions:
-✓ Login attempts (success and failure)
-✓ Logout events
-✓ Connection creation/modification/deletion
-✓ Connection test attempts
-✓ Workflow creation/modification/deletion
-✓ Workflow executions (with full metrics)
-✓ Schema/table browsing
-✓ Configuration changes
-✓ Permission denials (403 errors)
-✓ Authentication failures (401 errors)
-✓ API errors (500 errors)
-
-Compliance Benefits:
-• GDPR Article 30: Records of processing activities
-• HIPAA Audit Controls: Complete audit trail
-• SOC 2: User access and change logs
-• ISO 27001: Security event logging
-• PCI DSS: Track and monitor all access to data
-
-Retention Policy:
-• Execution logs: 90 days (configurable)
-• Security events: 1 year
-• Compliance logs: 7 years (if required)
-• Regular archival to cold storage
-```
-
----
 
 ## 9. DEPLOYMENT ARCHITECTURE
 
@@ -1428,136 +872,6 @@ Developer Workstation (Windows/Mac/Linux)
 └────────────────────────────────────────────────────┘
 ```
 
-### 9.2 Production Environment
-
-```
-PRODUCTION ENVIRONMENT (High Availability)
-
-                    Internet
-                       │
-                       │ HTTPS
-                       ▼
-┌──────────────────────────────────────────────────┐
-│         LAYER 1: LOAD BALANCER                   │
-│      (Nginx / HAProxy / Cloud LB)                │
-├──────────────────────────────────────────────────┤
-│ • SSL/TLS termination                            │
-│ • Health checks (every 30s)                      │
-│ • Request routing: /api/* → Backend              │
-│ •                  /* → Frontend                 │
-│ • Rate limiting (1000 req/min per IP)            │
-│ • DDoS protection                                │
-│ • Gzip compression                               │
-│ • Security headers                               │
-└────────┬─────────────────────────────────────────┘
-         │
-   ┌─────┴─────┐
-   │           │
-   ▼           ▼
-Frontend    Backend API Cluster
-Server
-            ┌───────────┐  ┌───────────┐
-            │API Server1│  │API Server2│
-            │Gunicorn   │  │Gunicorn   │
-            │+Uvicorn   │  │+Uvicorn   │
-            │4 workers  │  │4 workers  │
-            └───────────┘  └───────────┘
-                    │
-                    │ SQL Queries
-                    ▼
-         ┌──────────────────────────────┐
-         │   DATABASE TIER              │
-         │                              │
-         │  PRIMARY DATABASE SERVER     │
-         │  • Application DB            │
-         │  • Always-On Availability    │
-         │  • Automatic failover        │
-         │  • Full backups: Daily       │
-         │  • Transaction log: 15 mins  │
-         │                              │
-         │  SECONDARY DATABASE (Standby)│
-         │  • Synchronized replica      │
-         │  • Automatic failover        │
-         │                              │
-         │  READ REPLICA (Optional)     │
-         │  • Asynchronous replication  │
-         │  • Read-only queries         │
-         │  • Analytics/reporting       │
-         └──────────────────────────────┘
-
-MONITORING & LOGGING:
-• ELK Stack (Elasticsearch, Logstash, Kibana)
-• Prometheus + Grafana
-• PagerDuty / Opsgenie alerting
-• Uptime monitoring (Pingdom)
-• SLA target: 99.9% uptime
-```
-
-### 9.3 Deployment Process
-
-```
-CI/CD PIPELINE (Continuous Deployment)
-
-Developer → Git Repo → CI/CD Pipeline → Staging → Production
-
-1. Code Changes (Feature/Bug Fix)
-2. Commit to Git (feature branch)
-3. Create Pull Request
-4. Code Review (peer review, architecture review, security scan)
-5. Merge to main branch
-6. Automated Tests (unit, integration, E2E, security, linting)
-   ├─ FAIL → Notify Developer, Stop Pipeline
-   └─ PASS → Continue
-7. Build Stage
-   - Frontend: npm build, optimize assets
-   - Backend: install deps, create artifacts
-8. Deploy to Staging
-   - Identical to production
-   - Run smoke tests
-   - QA verification
-   - Load testing
-9. Manual Approval (optional)
-   - QA sign-off
-   - Product sign-off
-10. Deploy to Production
-    - Blue-Green Deployment
-    - Deploy to "green" environment
-    - Run health checks
-    - Switch traffic from "blue" to "green"
-    - Keep "blue" as rollback option
-11. Post-deployment Verification
-    - Smoke tests
-    - Monitor errors
-    - Check metrics
-    - Validate uptime
-    ├─ SUCCESS → Update docs, notify team
-    └─ FAILURE → Automatic rollback, alert on-call engineer
-```
-
-**Deployment Strategy:**
-- Blue-Green Deployment: Zero-downtime deployments
-- Rollback Plan: Previous version kept for quick rollback
-- Database Migrations: Run before application deployment with backward compatibility
-- Feature Flags: Enable/disable features without redeployment
-
-### 9.4 Environment Configuration Matrix
-
-| Configuration | Development | Staging | Production |
-|---------------|-------------|---------|------------|
-| **Frontend URL** | localhost:3000 | staging.company.com | pii-tool.company.com |
-| **Backend URL** | localhost:8000 | api-staging.company.com | api.company.com |
-| **Database** | Local/Dev Server | Staging DB | Production DB Cluster |
-| **HTTPS** | No (HTTP) | Yes | Yes (Commercial SSL) |
-| **JWT Expiration** | 7 days | 24 hours | 24 hours |
-| **Logging Level** | DEBUG | INFO | WARNING |
-| **Error Details** | Full stack traces | Limited details | Generic messages only |
-| **CORS** | localhost:3000 | staging domain only | production domain only |
-| **Rate Limiting** | Disabled | Enabled (lenient) | Enabled (strict) |
-| **Backups** | Manual | Daily | Hourly + daily + weekly |
-| **Monitoring** | Local only | Basic | Full monitoring + alerts |
-| **Workers** | 1 | 2 | 4-8 (auto-scale) |
-
----
 
 ## 10. INTEGRATION ARCHITECTURE
 
@@ -1594,152 +908,55 @@ API INTEGRATION ARCHITECTURE
 │  POST   /api/auth/login                            │
 │  GET    /api/auth/me                               │
 │                                                    │
-│  Connections:                                      │
-│  GET    /api/connections                           │
-│  POST   /api/connections                           │
-│  GET    /api/connections/{id}                      │
-│  PUT    /api/connections/{id}                      │
-│  DELETE /api/connections/{id}                      │
-│  POST   /api/connections/{id}/test                 │
+│  Server Connections:                               │
+│  GET    /api/server/connections                    │
+│  POST   /api/server/connections                    │
+│  GET    /api/server/connections/{id}               │
+│  DELETE /api/server/connections/{id}               │
+│  POST   /api/server/connections/test               │
 │                                                    │
 │  Schema Discovery:                                 │
-│  GET    /api/connections/{id}/schemas              │
-│  GET    /api/connections/{id}/schemas/{schema}/    │
-│         tables                                     │
-│  GET    /api/connections/{id}/schemas/{schema}/    │
-│         tables/{table}/columns                     │
+│  GET    /api/server/connections/{id}/schemas       │
+│  GET    /api/server/connections/{id}/schemas/      │
+│         {schema}/tables                            │
+│  GET    /api/server/connections/{id}/schemas/      │
+│         {schema}/tables/{table}/columns            │
 │                                                    │
-│  Workflows:                                        │
-│  GET    /api/workflows                             │
-│  POST   /api/workflows                             │
-│  GET    /api/workflows/{id}                        │
-│  PUT    /api/workflows/{id}                        │
-│  DELETE /api/workflows/{id}                        │
-│  POST   /api/workflows/{id}/execute                │
+│  Server Workflows:                                 │
+│  GET    /api/server/workflows                      │
+│  POST   /api/server/workflows                      │
+│  GET    /api/server/workflows/{id}                 │
+│  DELETE /api/server/workflows/{id}                 │
+│  POST   /api/server/workflows/{id}/execute         │
+│  GET    /api/server/workflows/{id}/executions      │
+│  GET    /api/server/workflows/{id}/executions/     │
+│         {exec_id}/logs                             │
 │                                                    │
-│  Executions:                                       │
-│  GET    /api/executions                            │
-│  GET    /api/executions/{id}                       │
+│  Constraint Checking:                              │
+│  GET    /api/server/constraints/primary-keys       │
+│  GET    /api/server/constraints/foreign-keys       │
+│  GET    /api/server/constraints/unique             │
+│  GET    /api/server/constraints/check              │
+│  GET    /api/server/constraints/triggers           │
+│  GET    /api/server/constraints/indexes            │
+│                                                    │
+│  Masking:                                          │
+│  POST   /api/server/masking/preview                │
 │                                                    │
 │  PII Attributes:                                   │
-│  GET    /api/pii-attributes                        │
+│  GET    /api/workflows/pii-attributes              │
 │                                                    │
 │  Health Check:                                     │
 │  GET    /health                                    │
-│  GET    /api/health/db                             │
 │                                                    │
 └────────────────────────────────────────────────────┘
 ```
 
-### 10.2 API Request/Response Format
-
-**Standard Request Format:**
-```
-Method: POST
-URL: https://api.company.com/api/workflows
-Headers:
-  Authorization: Bearer <JWT_TOKEN>
-  Content-Type: application/json
-  Accept: application/json
-
-Body (JSON):
-{
-  "name": "Mask Employee Data",
-  "description": "Mask PII in employee table",
-  "source_connection_id": 1,
-  "target_connection_id": 2,
-  "status": "active",
-  "mappings": [
-    {
-      "source_schema": "dbo",
-      "source_table": "employees",
-      "target_schema": "dbo",
-      "target_table": "masked_employees",
-      "column_mappings": [
-        {
-          "source_column": "first_name",
-          "pii_attribute": "first_name",
-          "target_column": "first_name"
-        }
-      ]
-    }
-  ]
-}
-```
-
-**Standard Response Format (Success):**
-```
-Status: 201 Created
-Headers:
-  Content-Type: application/json
-
-Body (JSON):
-{
-  "success": true,
-  "data": {
-    "id": 123,
-    "name": "Mask Employee Data",
-    "description": "Mask PII in employee table",
-    "status": "active",
-    "created_at": "2025-01-15T14:30:00Z"
-  },
-  "message": "Workflow created successfully"
-}
-```
-
-**Standard Response Format (Error):**
-```
-Status: 400 Bad Request
-Headers:
-  Content-Type: application/json
-
-Body (JSON):
-{
-  "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid workflow configuration",
-    "details": [
-      {
-        "field": "source_connection_id",
-        "issue": "Connection with ID 1 does not exist"
-      }
-    ]
-  }
-}
-```
-
-### 10.3 Integration with External Systems (Future)
-
-**Potential Integrations:**
-
-**CI/CD Pipelines:**
-- Trigger workflow execution as part of deployment
-- Mask test data before running integration tests
-- API endpoint: POST /api/workflows/{id}/execute
-
-**Data Warehouse ETL:**
-- Mask PII before loading into data warehouse
-- Schedule recurring executions via API
-- Monitor execution status programmatically
-
-**Compliance Tools:**
-- Export audit logs for compliance reporting
-- Provide API for SIEM (Security Information and Event Management)
-- Data lineage tracking
-
-**Monitoring Systems:**
-- Health check endpoints for uptime monitoring
-- Metrics API for dashboard integration
-- Alert webhook for execution failures
-
----
 
 ## DOCUMENT END
 
 This technical architecture document provides a comprehensive overview of the PII Masking Tool system design, focusing on:
 
-• **3-tier architecture** with clear separation of concerns
 • **JWT-based authentication** for stateless security
 • **Smart PII filtering** based on SQL data types
 • **ETL-style masking execution** with transaction safety
@@ -1757,7 +974,3 @@ The architecture prioritizes:
 All components work together to provide a robust, secure, and user-friendly solution for PII data masking across databases.
 
 ---
-
-**Document Version:** 1.0
-**Last Updated:** January 2025
-**Author:** Technical Architecture Team

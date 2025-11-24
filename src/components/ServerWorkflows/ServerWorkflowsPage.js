@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   CardContent,
-  Grid,
   Alert,
   CircularProgress,
   IconButton,
@@ -23,7 +22,7 @@ import {
 import { DataGrid } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import { serverWorkflowsAPI } from '../../services/api';
-import { getCurrentUser } from '../../utils/auth';
+// import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
@@ -41,7 +40,7 @@ const theme = createTheme({
 
 const ServerWorkflowsPage = () => {
   const navigate = useNavigate();
-  const user = getCurrentUser();
+  // const user = getCurrentUser();
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -196,10 +195,10 @@ const ServerWorkflowsPage = () => {
 
     return (
       <Box>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
           <Box>
-            <Typography variant="h4" gutterBottom>
-              Server Workflows
+            <Typography variant="h4">
+              Workflows Summary
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
               Create and manage in-place PII masking workflows (same database/schema/table)
@@ -248,7 +247,7 @@ const ServerWorkflowsPage = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 3 }}>
+      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 1 }}>
         {workflowsContent()}
       </Box>
     </ThemeProvider>

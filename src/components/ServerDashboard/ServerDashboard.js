@@ -140,7 +140,7 @@ const ServerDashboard = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 3 }}>
+      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 1 }}>
         <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
           <Box>
             <Typography variant="h4">

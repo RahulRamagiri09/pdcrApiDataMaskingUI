@@ -206,10 +206,10 @@ const ServerConnectionsPage = () => {
 
     return (
       <Box>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
           <Box>
-            <Typography variant="h4" gutterBottom>
-              Server Connections
+            <Typography variant="h4">
+              Connections Summary
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
               Manage connections for in-place PII masking workflows (same database/schema/table)
@@ -292,7 +292,7 @@ const ServerConnectionsPage = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 3 }}>
+      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 1 }}>
         {connectionsContent()}
       </Box>
     </ThemeProvider>

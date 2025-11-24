@@ -59,6 +59,11 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
         setError('Please fill in all required fields');
         return;
       }
+      // Validate connection name is not same as server name
+      if (formData.name.trim().toLowerCase() === formData.server.trim().toLowerCase()) {
+        setError('Connection name should not be the same as server name');
+        return;
+      }
       setActiveStep(1);
     } else if (activeStep === 1) {
       // Test connection

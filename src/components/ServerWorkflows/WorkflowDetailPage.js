@@ -77,7 +77,7 @@ function TabPanel({ children, value, index, ...other }) {
       aria-labelledby={`workflow-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ pt: 1 }}>{children}</Box>}
     </div>
   );
 }
@@ -1256,9 +1256,9 @@ const WorkflowDetailPage = () => {
           {/* Nested Tabs for Preview Masking */}
           <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
             <Tabs value={previewSubTab} onChange={(_, newValue) => setPreviewSubTab(newValue)}>
-              <Tab label="Column Mapping" />
-              <Tab label="Constraint Checks" />
-              <Tab label="Preview Masking" />
+              <Tab label="Column Mapping" sx={{ textTransform: 'none' }} />
+              <Tab label="Constraint Checks" sx={{ textTransform: 'none' }} />
+              <Tab label="Preview Masking" sx={{ textTransform: 'none' }} />
             </Tabs>
           </Box>
 
@@ -1606,7 +1606,7 @@ const WorkflowDetailPage = () => {
 
     return (
       <Box sx={{ width: '100%' }}>
-        <Box display="flex" alignItems="center" mb={3}>
+        <Box display="flex" alignItems="center" mb={1}>
           <IconButton
             onClick={() => navigate('/server/workflows')}
             sx={{
@@ -1619,7 +1619,7 @@ const WorkflowDetailPage = () => {
             <ArrowBackIcon />
           </IconButton>
           <Box flexGrow={1}>
-            <Typography variant="h4" gutterBottom>
+            <Typography variant="h4">
               {workflow.name}
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
@@ -1635,11 +1635,11 @@ const WorkflowDetailPage = () => {
           </Alert>
         )}
 
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 1 }}>
           <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
-            <Tab label="Overview" />
-            <Tab label="Execution History" />
-            <Tab label="Preview Masking" />
+            <Tab label="Overview" sx={{ textTransform: 'none' }} />
+            <Tab label="Execution History" sx={{ textTransform: 'none' }} />
+            <Tab label="Preview Masking" sx={{ textTransform: 'none' }} />
           </Tabs>
         </Box>
 
@@ -1693,7 +1693,7 @@ const WorkflowDetailPage = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 3 }}>
+      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 1 }}>
         {workflowDetailContent()}
       </Box>
       {renderLogsDialog()}

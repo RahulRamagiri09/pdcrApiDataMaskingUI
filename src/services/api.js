@@ -240,7 +240,7 @@ export const serverWorkflowsAPI = {
   getExecutions: (workflowId) => pocApi.get(`/server/workflows/${workflowId}/executions`),
 
   // PII attributes (reuses same endpoint as two-server system)
-  getPiiAttributes: () => pocApi.get('/workflows/pii-attributes'),
+  getPiiAttributes: () => pocApi.get('/server/workflows/pii-attributes'),
 };
 
 // Server Execution/Masking API

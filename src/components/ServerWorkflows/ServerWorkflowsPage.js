@@ -23,6 +23,8 @@ import { DataGrid } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import { serverWorkflowsAPI } from '../../services/api';
 import PageHeader from '../common/PageHeader';
+import ProtectedAction from '../common/ProtectedAction';
+import { usePermission } from '../../hooks/usePermission';
 // import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -46,6 +48,10 @@ const ServerWorkflowsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // RBAC permissions
+  const canCreate = usePermission('workflow.create');
+  const canDelete = usePermission('workflow.delete');
+
   useEffect(() => {
     loadWorkflows();
   }, []);
@@ -67,6 +73,12 @@ const ServerWorkflowsPage = () => {
   };
 
   const handleDeleteWorkflow = async (workflowId) => {
+    // Check permission before deletion
+    if (!canDelete) {
+      setError('You do not have permission to delete workflows');
+      return;
+    }
+
     if (window.confirm('Are you sure you want to delete this workflow?')) {
       try {
         await serverWorkflowsAPI.delete(workflowId);
@@ -172,14 +184,16 @@ const ServerWorkflowsPage = () => {
           >
             <ViewIcon />
           </IconButton>
-          <IconButton
-            size="small"
-            onClick={() => handleDeleteWorkflow(params.row.id)}
-            color="error"
-            title="Delete"
-          >
-            <DeleteIcon />
-          </IconButton>
+          <ProtectedAction action="workflow.delete" showDisabled>
+            <IconButton
+              size="small"
+              onClick={() => handleDeleteWorkflow(params.row.id)}
+              color="error"
+              title="Delete"
+            >
+              <DeleteIcon />
+            </IconButton>
+          </ProtectedAction>
         </Box>
       ),
     },
@@ -200,13 +214,15 @@ const ServerWorkflowsPage = () => {
           <Typography variant="subtitle1" color="text.secondary">
             Create and manage in-place PII masking workflows (same database/schema/table)
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/server/workflows/create')}
-          >
-            Create Workflow
-          </Button>
+          <ProtectedAction action="workflow.create">
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/server/workflows/create')}
+            >
+              Create Workflow
+            </Button>
+          </ProtectedAction>
         </Box>
 
         {error && (

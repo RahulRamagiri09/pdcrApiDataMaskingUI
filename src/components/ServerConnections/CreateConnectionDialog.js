@@ -51,9 +51,9 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
   const steps = ['Connection Details', 'Test Connection', 'Save Connection'];
 
   const validateConnectionName = (name) => {
-    const regex = /^[a-zA-Z0-9_-]*$/;
+    const regex = /^[a-zA-Z0-9 ]*$/;
     if (!regex.test(name)) {
-      return 'Connection name can only contain letters, numbers, underscores, and hyphens';
+      return 'Connection name can only contain letters, numbers, and spaces';
     }
     return '';
   };
@@ -187,7 +187,7 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
                 onChange={handleInputChange('name')}
                 required
                 error={!!nameError}
-                helperText={nameError || "A unique name to identify this server connection (letters, numbers, underscores, hyphens only)"}
+                helperText={nameError || "A unique name to identify this server connection (letters, numbers, and spaces only)"}
               />
             </Grid>
             <Grid item xs={12}>

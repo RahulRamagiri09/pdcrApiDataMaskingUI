@@ -31,6 +31,7 @@ import { useNavigate } from 'react-router-dom';
 import PageHeader from '../common/PageHeader';
 import { serverConnectionsAPI, serverWorkflowsAPI } from '../../services/api';
 import { getCurrentUser } from '../../utils/auth';
+import { usePermission } from '../../hooks/usePermission';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
@@ -49,6 +50,11 @@ const theme = createTheme({
 const ServerDashboard = () => {
   const navigate = useNavigate();
   const user = getCurrentUser();
+
+  // RBAC permissions
+  const canCreateWorkflow = usePermission('workflow.create');
+  const canCreateConnection = usePermission('connection.create');
+
   const [stats, setStats] = useState({
     connections: 0,
     workflows: 0,
@@ -178,18 +184,22 @@ const ServerDashboard = () => {
                 horizontal: 'right',
               }}
             >
-              <MenuItem onClick={() => handleQuickAction('/server/workflows/create')}>
-                <ListItemIcon>
-                  <WorkflowIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>Create New Workflow</ListItemText>
-              </MenuItem>
-              <MenuItem onClick={() => handleQuickAction('/server/connections')}>
-                <ListItemIcon>
-                  <AddIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>Add Connection</ListItemText>
-              </MenuItem>
+              {canCreateWorkflow && (
+                <MenuItem onClick={() => handleQuickAction('/server/workflows/create')}>
+                  <ListItemIcon>
+                    <WorkflowIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Create New Workflow</ListItemText>
+                </MenuItem>
+              )}
+              {canCreateConnection && (
+                <MenuItem onClick={() => handleQuickAction('/server/connections')}>
+                  <ListItemIcon>
+                    <AddIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Add Connection</ListItemText>
+                </MenuItem>
+              )}
               <MenuItem onClick={() => handleQuickAction('/server/workflows')}>
                 <ListItemIcon>
                   <VisibilityIcon fontSize="small" />

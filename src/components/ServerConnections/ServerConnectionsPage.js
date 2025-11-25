@@ -26,7 +26,9 @@ import { DataGrid } from '@mui/x-data-grid';
 import { serverConnectionsAPI } from '../../services/api';
 import CreateConnectionDialog from './CreateConnectionDialog';
 import PageHeader from '../common/PageHeader';
+import ProtectedAction from '../common/ProtectedAction';
 import { getCurrentUser } from '../../utils/auth';
+import { usePermission } from '../../hooks/usePermission';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
@@ -50,6 +52,10 @@ const ServerConnectionsPage = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [connectionToDelete, setConnectionToDelete] = useState(null);
+
+  // RBAC permissions
+  const canCreate = usePermission('connection.create');
+  const canDelete = usePermission('connection.delete');
 
   useEffect(() => {
     loadConnections();
@@ -77,6 +83,14 @@ const ServerConnectionsPage = () => {
   };
 
   const handleConfirmDelete = async () => {
+    // Check permission before deletion
+    if (!canDelete) {
+      setError('You do not have permission to delete connections');
+      setDeleteDialogOpen(false);
+      setConnectionToDelete(null);
+      return;
+    }
+
     try {
       await serverConnectionsAPI.delete(connectionToDelete.id);
       setConnections(connections.filter(conn => conn.id !== connectionToDelete.id));
@@ -184,13 +198,15 @@ const ServerConnectionsPage = () => {
       sortable: false,
       renderCell: (params) => (
         <Box>
-          <IconButton
-            size="small"
-            onClick={() => handleDeleteConnection(params.row)}
-            color="error"
-          >
-            <DeleteIcon />
-          </IconButton>
+          <ProtectedAction action="connection.delete" showDisabled>
+            <IconButton
+              size="small"
+              onClick={() => handleDeleteConnection(params.row)}
+              color="error"
+            >
+              <DeleteIcon />
+            </IconButton>
+          </ProtectedAction>
         </Box>
       ),
     },
@@ -211,13 +227,15 @@ const ServerConnectionsPage = () => {
           <Typography variant="subtitle1" color="text.secondary">
             Manage connections for in-place PII masking workflows (same database/schema/table)
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateDialogOpen(true)}
-          >
-            Add Connection
-          </Button>
+          <ProtectedAction action="connection.create">
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setCreateDialogOpen(true)}
+            >
+              Add Connection
+            </Button>
+          </ProtectedAction>
         </Box>
 
         {error && (

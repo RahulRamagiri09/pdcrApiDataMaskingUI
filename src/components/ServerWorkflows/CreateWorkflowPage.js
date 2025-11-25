@@ -39,6 +39,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { serverConnectionsAPI, serverWorkflowsAPI, serverMaskingAPI } from '../../services/api';
 import { getCurrentUser } from '../../utils/auth';
 import PageHeader from '../common/PageHeader';
+import { usePermission } from '../../hooks/usePermission';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
@@ -59,9 +60,15 @@ const CreateWorkflowPage = () => {
   const { id: workflowId } = useParams();
   const user = getCurrentUser();
   const isEditMode = Boolean(workflowId);
+
+  // RBAC permissions
+  const canCreate = usePermission('workflow.create');
+  const canUpdate = usePermission('workflow.update');
+
   const [activeStep, setActiveStep] = useState(isEditMode ? 2 : 0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [nameError, setNameError] = useState('');
   const [connections, setConnections] = useState([]);
   const [piiAttributes, setPiiAttributes] = useState([]);
   const [categorizedPiiAttributes, setCategorizedPiiAttributes] = useState({
@@ -130,6 +137,29 @@ const CreateWorkflowPage = () => {
     const category = getAttributeCategoryForDataType(columnInfo.data_type);
     return categorizedPiiAttributes[category] || [];
   };
+
+  // Validate workflow name - same rules as connection name
+  const validateWorkflowName = (name) => {
+    const regex = /^[a-zA-Z0-9 ]*$/;
+    if (!regex.test(name)) {
+      return 'Workflow name can only contain letters, numbers, and spaces';
+    }
+    return '';
+  };
+
+  // Check permissions and redirect if unauthorized
+  // Permission hooks return: null = loading, true = has permission, false = no permission
+  useEffect(() => {
+    const hasPermission = isEditMode ? canUpdate : canCreate;
+
+    // Only show error if permission is explicitly false (not null/loading)
+    if (hasPermission === false) {
+      setError(`You do not have permission to ${isEditMode ? 'edit' : 'create'} workflows. This action requires Admin role.`);
+      setTimeout(() => {
+        navigate('/server/workflows');
+      }, 2000);
+    }
+  }, [canCreate, canUpdate, isEditMode, navigate]);
 
   useEffect(() => {
     loadInitialData();
@@ -282,11 +312,17 @@ const CreateWorkflowPage = () => {
   };
 
   const handleInputChange = (field) => (event) => {
+    const value = event.target.value;
     setFormData(prev => ({
       ...prev,
-      [field]: event.target.value
+      [field]: value
     }));
     setError(null);
+
+    // Validate workflow name
+    if (field === 'name') {
+      setNameError(validateWorkflowName(value));
+    }
   };
 
   const handleNext = async () => {
@@ -295,6 +331,11 @@ const CreateWorkflowPage = () => {
         // Validate basic info
         if (!formData.name || !formData.connection_id) {
           setError('Please fill in all required fields');
+          return;
+        }
+        // Validate workflow name for special characters
+        if (nameError) {
+          setError('Please fix the workflow name error');
           return;
         }
         // Load schemas for the selected connection
@@ -485,6 +526,8 @@ const CreateWorkflowPage = () => {
                 value={formData.name}
                 onChange={handleInputChange('name')}
                 required
+                error={!!nameError}
+                helperText={nameError || "A unique name for this workflow (letters, numbers, and spaces only)"}
               />
             </Grid>
             <Grid size={12}>

@@ -42,8 +42,14 @@ const Login = () => {
       let token = response.data.token || response.data.access_token || response.data.accessToken;
       let user = response.data.user || { username: formData.username };
 
-      // Debug: Log the extracted token
+      // Extract role from response (could be in user object or root level)
+      if (!user.role && response.data.role) {
+        user.role = response.data.role;
+      }
+
+      // Debug: Log the extracted token and role
       console.log('Extracted token:', token);
+      console.log('Extracted user with role:', user);
 
       if (!token) {
         console.error('No token found in response:', response.data);

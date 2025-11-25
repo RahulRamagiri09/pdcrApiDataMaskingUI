@@ -23,6 +23,7 @@ import {
   ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import { useSidebar } from '../../context/SidebarContext';
+import { isAdmin } from '../../utils/rbac';
 
 const SIDEBAR_WIDTH_EXPANDED = 200;
 const SIDEBAR_WIDTH_COLLAPSED = 64;
@@ -64,6 +65,7 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isExpanded, toggleSidebar } = useSidebar();
+  const userIsAdmin = isAdmin();
 
   const handleNavigation = (path) => {
     navigate(path);
@@ -191,7 +193,7 @@ const Sidebar = () => {
               {renderNavItem(item)}
             </ListItem>
           ))}
-          {adminItems.map((item) => (
+          {userIsAdmin && adminItems.map((item) => (
             <ListItem key={item.path} disablePadding sx={{ display: 'block' }}>
               {renderNavItem(item)}
             </ListItem>

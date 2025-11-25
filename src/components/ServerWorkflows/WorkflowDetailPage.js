@@ -54,6 +54,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { serverWorkflowsAPI, serverMaskingAPI, serverConnectionsAPI, serverConstraintsAPI } from '../../services/api';
 import { getCurrentUser } from '../../utils/auth';
 import PageHeader from '../common/PageHeader';
+import ProtectedAction from '../common/ProtectedAction';
+import { usePermission } from '../../hooks/usePermission';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
@@ -90,6 +92,12 @@ const WorkflowDetailPage = () => {
   console.log('[DEBUG] workflowId from useParams:', workflowId);
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') === 'execute' ? 1 : 0;
+
+  // RBAC permissions
+  const canExecute = usePermission('workflow.execute');
+  const canUpdate = usePermission('workflow.update');
+  const canDelete = usePermission('workflow.delete');
+  const canStopExecution = usePermission('execution.stop');
 
   const [tabValue, setTabValue] = useState(initialTab);
   const [workflow, setWorkflow] = useState(null);
@@ -266,6 +274,13 @@ const WorkflowDetailPage = () => {
   // };
 
   const handleExecuteWorkflow = async () => {
+    // Check permission
+    if (!canExecute) {
+      setError('You do not have permission to execute workflows');
+      setExecuteDialog(false);
+      return;
+    }
+
     try {
       setExecuting(true);
       setError(null);
@@ -297,6 +312,12 @@ const WorkflowDetailPage = () => {
   };
 
   const handleDeleteWorkflow = async () => {
+    // Check permission
+    if (!canDelete) {
+      setError('You do not have permission to delete workflows');
+      return;
+    }
+
     if (window.confirm('Are you sure you want to delete this workflow? This action cannot be undone.')) {
       try {
         await serverWorkflowsAPI.delete(workflowId);
@@ -324,6 +345,12 @@ const WorkflowDetailPage = () => {
   };
 
   const handleStopExecution = async (executionId) => {
+    // Check permission
+    if (!canStopExecution) {
+      setError('You do not have permission to stop executions');
+      return;
+    }
+
     try {
       setLoading(true);
       await serverMaskingAPI.stopExecution(workflow.id, executionId);
@@ -1009,31 +1036,37 @@ const WorkflowDetailPage = () => {
           </Box>
 
           <Box display="flex" flexDirection="row" gap={2}>
-            <Button
-              variant="contained"
-              startIcon={<PlayIcon />}
-              onClick={() => setExecuteDialog(true)}
-              disabled={workflow.status === 'running' || executing}
-            >
-              Execute Workflow
-            </Button>
+            <ProtectedAction action="workflow.execute" showDisabled>
+              <Button
+                variant="contained"
+                startIcon={<PlayIcon />}
+                onClick={() => setExecuteDialog(true)}
+                disabled={workflow.status === 'running' || executing}
+              >
+                Execute Workflow
+              </Button>
+            </ProtectedAction>
 
-            <Button
-              variant="outlined"
-              startIcon={<EditIcon />}
-              onClick={() => navigate(`/server/workflows/${workflowId}/edit`)}
-            >
-              Edit Workflow
-            </Button>
+            <ProtectedAction action="workflow.update">
+              <Button
+                variant="outlined"
+                startIcon={<EditIcon />}
+                onClick={() => navigate(`/server/workflows/${workflowId}/edit`)}
+              >
+                Edit Workflow
+              </Button>
+            </ProtectedAction>
 
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteIcon />}
-              onClick={handleDeleteWorkflow}
-            >
-              Delete Workflow
-            </Button>
+            <ProtectedAction action="workflow.delete" showDisabled>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={handleDeleteWorkflow}
+              >
+                Delete Workflow
+              </Button>
+            </ProtectedAction>
           </Box>
 
           {currentExecution && currentExecution.status === 'running' && (
@@ -1222,14 +1255,16 @@ const WorkflowDetailPage = () => {
                             <ViewLogsIcon fontSize="small" />
                           </IconButton>
                           {execution.status === 'running' && (
-                            <IconButton
-                              size="small"
-                              onClick={() => handleStopExecution(execution.id)}
-                              title="Stop Execution"
-                              color="error"
-                            >
-                              <StopIcon fontSize="small" />
-                            </IconButton>
+                            <ProtectedAction action="execution.stop" showDisabled>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleStopExecution(execution.id)}
+                                title="Stop Execution"
+                                color="error"
+                              >
+                                <StopIcon fontSize="small" />
+                              </IconButton>
+                            </ProtectedAction>
                           )}
                         </Box>
                       </TableCell>

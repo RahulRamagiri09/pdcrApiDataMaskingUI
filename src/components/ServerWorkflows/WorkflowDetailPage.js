@@ -53,6 +53,7 @@ import {
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { serverWorkflowsAPI, serverMaskingAPI, serverConnectionsAPI, serverConstraintsAPI } from '../../services/api';
 import { getCurrentUser } from '../../utils/auth';
+import PageHeader from '../common/PageHeader';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
@@ -1693,7 +1694,8 @@ const WorkflowDetailPage = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 1 }}>
+      <Box sx={{ width: '100%', mt: 0, mb: 3, px: 1 }}>
+        <PageHeader title="Workflow Details" />
         {workflowDetailContent()}
       </Box>
       {renderLogsDialog()}

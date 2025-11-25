@@ -38,6 +38,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { serverConnectionsAPI, serverWorkflowsAPI, serverMaskingAPI } from '../../services/api';
 import { getCurrentUser } from '../../utils/auth';
+import PageHeader from '../common/PageHeader';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
@@ -810,7 +811,8 @@ const CreateWorkflowPage = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 3 }}>
+      <Box sx={{ width: '100%', mt: 0, mb: 3, px: 3 }}>
+        <PageHeader title={isEditMode ? 'Edit Workflow' : 'Create Workflow'} marginX={-3} />
         {createWorkflowContent()}
       </Box>
     </ThemeProvider>

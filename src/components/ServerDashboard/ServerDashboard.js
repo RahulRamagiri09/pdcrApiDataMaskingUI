@@ -28,6 +28,7 @@ import {
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import PageHeader from '../common/PageHeader';
 import { serverConnectionsAPI, serverWorkflowsAPI } from '../../services/api';
 import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -140,16 +141,16 @@ const ServerDashboard = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 1 }}>
+      <Box sx={{ width: '100%', mt: 0, mb: 3, px: 1 }}>
+        <PageHeader title="Dashboard" />
+
         <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
-          <Box>
-            <Typography variant="h4">
-              Dashboard
-            </Typography>
-            <Typography variant="subtitle1" color="text.secondary" sx={{ fontSize: '1.25rem' }}>
-              Welcome back, <Box component="span" sx={{ color: '#0b2677', fontSize: '1.4rem', fontWeight: 600, textTransform: 'capitalize' }}>{user?.username || 'User'}</Box>
-            </Typography>
-          </Box>
+          <Typography variant="subtitle1" color="text.secondary">
+            Overview of your PII masking connections and workflows
+          </Typography>
+          {/* <Typography variant="subtitle1" color="text.secondary" sx={{ fontSize: '1.25rem' }}>
+            Welcome back, <Box component="span" sx={{ color: '#0b2677', fontSize: '1.4rem', fontWeight: 600, textTransform: 'capitalize' }}>{user?.username || 'User'}</Box>
+          </Typography> */}
           <Box>
             <Button
               variant="contained"

@@ -24,6 +24,7 @@ const MainLayout = ({ children }) => {
           width: `calc(100% - ${isExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED}px)`,
           transition: 'width 0.3s ease',
           overflow: 'auto',
+          scrollbarGutter: 'stable',
           backgroundColor: '#f5f5f5',
         }}
       >

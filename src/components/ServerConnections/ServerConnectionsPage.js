@@ -25,6 +25,7 @@ import {
 import { DataGrid } from '@mui/x-data-grid';
 import { serverConnectionsAPI } from '../../services/api';
 import CreateConnectionDialog from './CreateConnectionDialog';
+import PageHeader from '../common/PageHeader';
 import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -207,14 +208,9 @@ const ServerConnectionsPage = () => {
     return (
       <Box>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-          <Box>
-            <Typography variant="h4">
-              Connections Summary
-            </Typography>
-            <Typography variant="subtitle1" color="text.secondary">
-              Manage connections for in-place PII masking workflows (same database/schema/table)
-            </Typography>
-          </Box>
+          <Typography variant="subtitle1" color="text.secondary">
+            Manage connections for in-place PII masking workflows (same database/schema/table)
+          </Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -292,7 +288,8 @@ const ServerConnectionsPage = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ width: '100%', mt: 3, mb: 3, px: 1 }}>
+      <Box sx={{ width: '100%', mt: 0, mb: 3, px: 1 }}>
+        <PageHeader title="Connections Summary" />
         {connectionsContent()}
       </Box>
     </ThemeProvider>

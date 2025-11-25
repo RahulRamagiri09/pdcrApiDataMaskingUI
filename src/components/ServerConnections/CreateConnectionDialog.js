@@ -19,10 +19,14 @@ import {
   StepLabel,
   Typography,
   Chip,
+  InputAdornment,
+  IconButton,
 } from '@mui/material';
 import {
   CheckCircle as CheckIcon,
   Error as ErrorIcon,
+  Visibility,
+  VisibilityOff,
 } from '@mui/icons-material';
 import { serverConnectionsAPI } from '../../services/api';
 
@@ -31,6 +35,8 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [testResult, setTestResult] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [nameError, setNameError] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -44,12 +50,25 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
 
   const steps = ['Connection Details', 'Test Connection', 'Save Connection'];
 
+  const validateConnectionName = (name) => {
+    const regex = /^[a-zA-Z0-9_-]*$/;
+    if (!regex.test(name)) {
+      return 'Connection name can only contain letters, numbers, underscores, and hyphens';
+    }
+    return '';
+  };
+
   const handleInputChange = (field) => (event) => {
+    const value = event.target.value;
     setFormData(prev => ({
       ...prev,
-      [field]: event.target.value
+      [field]: value
     }));
     setError(null);
+
+    if (field === 'name') {
+      setNameError(validateConnectionName(value));
+    }
   };
 
   const handleNext = async () => {
@@ -57,6 +76,11 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
       // Validate form data
       if (!formData.name || !formData.server || !formData.database || !formData.username || !formData.password) {
         setError('Please fill in all required fields');
+        return;
+      }
+      // Validate connection name for special characters
+      if (nameError) {
+        setError('Please fix the connection name error');
         return;
       }
       // Validate connection name is not same as server name
@@ -162,7 +186,8 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
                 value={formData.name}
                 onChange={handleInputChange('name')}
                 required
-                helperText="A unique name to identify this server connection"
+                error={!!nameError}
+                helperText={nameError || "A unique name to identify this server connection (letters, numbers, underscores, hyphens only)"}
               />
             </Grid>
             <Grid item xs={12}>
@@ -222,11 +247,23 @@ const CreateConnectionDialog = ({ open, onClose, onConnectionCreated }) => {
             <Grid item xs={6}>
               <TextField
                 fullWidth
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 label="Password"
                 value={formData.password}
                 onChange={handleInputChange('password')}
                 required
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Grid>
           </Grid>

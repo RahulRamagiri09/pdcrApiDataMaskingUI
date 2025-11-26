@@ -1,7 +1,7 @@
 # RBAC Access Matrix - PII Masking Tool
 
 **Document Version:** 1.0
-**Date:** January 2025
+**Date:** November 2025
 **Purpose:** Define role-based access control for single database in-place masking
 
 ---
@@ -23,13 +23,13 @@
 
 | Feature | Admin | Privilege | General | Support |
 |---------|-------|-----------|---------|---------|
-| View connection list | ✅ | ✅ | ✅ | ✅ |
-| Create new connection | ✅ | ❌ | ❌ | ❌ |
-| Edit connection details | ✅ | ❌ | ❌ | ❌ |
-| Delete connection | ✅ | ❌ | ❌ | ❌ |
-| Test connection | ✅ | ❌ | ❌ | ❌ |
-| View schemas/tables | ✅ | ✅ | ✅ | ✅ |
-| View table columns | ✅ | ✅ | ✅ | ✅ |
+| View connection list | Yes | Yes | Yes | Yes |
+| Create new connection | Yes | No | No | No |
+| Edit connection details | Yes | No | No | No |
+| Delete connection | Yes | No | No | No |
+| Test connection | Yes | No | No | No |
+| View schemas/tables | Yes | Yes | Yes | Yes |
+| View table columns | Yes | Yes | Yes | Yes |
 
 ---
 
@@ -37,14 +37,14 @@
 
 | Feature | Admin | Privilege | General | Support |
 |---------|-------|-----------|---------|---------|
-| View workflow list | ✅ | ✅ | ✅ | ✅ |
-| Create new workflow | ✅ | ❌ | ❌ | ❌ |
-| Edit workflow | ✅ | ❌ | ❌ | ❌ |
-| Delete workflow | ✅ | ❌ | ❌ | ❌ |
-| **Execute workflow** | ✅ | ✅ | ❌ | ❌ |
-| View column mappings | ✅ | ✅ | ✅ | ✅ |
-| Edit column mappings | ✅ | ❌ | ❌ | ❌ |
-| View PII attributes | ✅ | ✅ | ✅ | ✅ |
+| View workflow list | Yes | Yes | Yes | Yes |
+| Create new workflow | Yes | No | No | No |
+| Edit workflow | Yes | No | No | No |
+| Delete workflow | Yes | No | No | No |
+| **Execute workflow** | Yes | Yes | No | No |
+| View column mappings | Yes | Yes | Yes | Yes |
+| Edit column mappings | Yes | No | No | No |
+| View PII attributes | Yes | Yes | Yes | Yes |
 
 ---
 
@@ -52,12 +52,12 @@
 
 | Feature | Admin | Privilege | General | Support |
 |---------|-------|-----------|---------|---------|
-| View execution history | ✅ | ✅ | ✅ | ✅ |
-| Start execution | ✅ | ✅ | ❌ | ❌ |
-| Stop execution | ✅ | ✅ | ❌ | ❌ |
-| View execution status | ✅ | ✅ | ✅ | ✅ |
-| View execution logs | ✅ | ✅ | ✅ | ✅ |
-| View execution progress | ✅ | ✅ | ✅ | ✅ |
+| View execution history | Yes | Yes | Yes | Yes |
+| Start execution | Yes | Yes | No | No |
+| Stop execution | Yes | Yes | No | No |
+| View execution status | Yes | Yes | Yes | Yes |
+| View execution logs | Yes | Yes | Yes | Yes |
+| View execution progress | Yes | Yes | Yes | Yes |
 
 ---
 
@@ -65,14 +65,14 @@
 
 | Feature | Admin | Privilege | General | Support |
 |---------|-------|-----------|---------|---------|
-| View masking preview | ✅ | ✅ | ✅ | ✅ |
-| View constraint checks | ✅ | ✅ | ✅ | ✅ |
-| View primary keys | ✅ | ✅ | ✅ | ✅ |
-| View foreign keys | ✅ | ✅ | ✅ | ✅ |
-| View unique constraints | ✅ | ✅ | ✅ | ✅ |
-| View check constraints | ✅ | ✅ | ✅ | ✅ |
-| View triggers | ✅ | ✅ | ✅ | ✅ |
-| View indexes | ✅ | ✅ | ✅ | ✅ |
+| View masking preview | Yes | Yes | Yes | Yes |
+| View constraint checks | Yes | Yes | Yes | Yes |
+| View primary keys | Yes | Yes | Yes | Yes |
+| View foreign keys | Yes | Yes | Yes | Yes |
+| View unique constraints | Yes | Yes | Yes | Yes |
+| View check constraints | Yes | Yes | Yes | Yes |
+| View triggers | Yes | Yes | Yes | Yes |
+| View indexes | Yes | Yes | Yes | Yes |
 
 ---
 
@@ -80,11 +80,11 @@
 
 | Feature | Admin | Privilege | General | Support |
 |---------|-------|-----------|---------|---------|
-| View users | ✅ | ❌ | ❌ | ❌ |
-| Create users | ✅ | ❌ | ❌ | ❌ |
-| Assign roles | ✅ | ❌ | ❌ | ❌ |
-| View roles | ✅ | ❌ | ❌ | ❌ |
-| Create roles | ✅ | ❌ | ❌ | ❌ |
+| View users | Yes | No | No | No |
+| Create users | Yes | No | No | No |
+| Assign roles | Yes | No | No | No |
+| View roles | Yes | No | No | No |
+| Create roles | Yes | No | No | No |
 
 ---
 
@@ -92,10 +92,10 @@
 
 | Feature | Admin | Privilege | General | Support |
 |---------|-------|-----------|---------|---------|
-| View dashboard | ✅ | ✅ | ✅ | ✅ |
-| View statistics | ✅ | ✅ | ✅ | ✅ |
-| View recent activity | ✅ | ✅ | ✅ | ✅ |
-| Quick actions | ✅ | ✅ | ❌ | ❌ |
+| View dashboard | Yes | Yes | Yes | Yes |
+| View statistics | Yes | Yes | Yes | Yes |
+| View recent activity | Yes | Yes | Yes | Yes |
+| Quick actions | Yes | Yes | No | No |
 
 ---
 

@@ -26,6 +26,7 @@ import {
   KeyboardArrowDown as KeyboardArrowDownIcon,
   AccountTree as WorkflowIcon,
   Visibility as VisibilityIcon,
+  Stop as StopIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../common/PageHeader';
@@ -113,6 +114,9 @@ const ServerDashboard = () => {
         return 'warning';
       case 'failed':
         return 'error';
+      case 'cancelled':
+      case 'stopped':
+        return 'info';
       case 'draft':
         return 'default';
       default:
@@ -128,6 +132,9 @@ const ServerDashboard = () => {
         return <CircularProgress size={16} />;
       case 'failed':
         return <ErrorIcon />;
+      case 'cancelled':
+      case 'stopped':
+        return <StopIcon />;
       default:
         return <PlayIcon />;
     }

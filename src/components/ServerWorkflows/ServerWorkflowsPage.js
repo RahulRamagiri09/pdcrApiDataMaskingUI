@@ -18,6 +18,7 @@ import {
   CheckCircle as CheckIcon,
   Error as ErrorIcon,
   Schedule as ScheduleIcon,
+  Stop as StopIcon,
 } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
@@ -124,6 +125,16 @@ const ServerWorkflowsPage = () => {
             icon={<ScheduleIcon />}
             label="Pending"
             color="default"
+            size="small"
+          />
+        );
+      case 'cancelled':
+      case 'stopped':
+        return (
+          <Chip
+            icon={<StopIcon />}
+            label="Cancelled"
+            color="info"
             size="small"
           />
         );

@@ -627,6 +627,16 @@ const WorkflowDetailPage = () => {
             size="small"
           />
         );
+      case 'cancelled':
+      case 'stopped':
+        return (
+          <Chip
+            icon={<StopIcon />}
+            label="Cancelled"
+            color="info"
+            size="small"
+          />
+        );
       default:
         return (
           <Chip

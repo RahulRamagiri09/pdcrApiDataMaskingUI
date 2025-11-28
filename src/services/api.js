@@ -256,6 +256,14 @@ export const serverMaskingAPI = {
   stopExecution: (workflowId, executionId) =>
     pocApi.post(`/server/workflows/${workflowId}/executions/${executionId}/stop`),
 
+  // Pause running execution
+  pauseExecution: (workflowId, executionId) =>
+    pocApi.post(`/server/workflows/${workflowId}/executions/${executionId}/pause`),
+
+  // Resume paused execution
+  resumeExecution: (workflowId, executionId) =>
+    pocApi.post(`/server/workflows/${workflowId}/executions/${executionId}/resume`),
+
   // Generate sample masked data for preview (reuses same endpoint)
   generateSampleData: (piiAttribute, count = 5) =>
     pocApi.post('/masking/sample-data', { pii_attribute: piiAttribute, count }),

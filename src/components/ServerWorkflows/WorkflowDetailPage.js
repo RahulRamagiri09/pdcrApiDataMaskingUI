@@ -42,6 +42,7 @@ import {
   Refresh as RefreshIcon,
   Visibility as ViewLogsIcon,
   Stop as StopIcon,
+  Pause as PauseIcon,
   CheckCircleOutline as CheckCircleOutlineIcon,
   Link as LinkIcon,
   Key as KeyIcon,
@@ -98,6 +99,8 @@ const WorkflowDetailPage = () => {
   const canUpdate = usePermission('workflow.update');
   const canDelete = usePermission('workflow.delete');
   const canStopExecution = usePermission('execution.stop');
+  const canPauseExecution = usePermission('execution.pause');
+  const canResumeExecution = usePermission('execution.resume');
 
   const [tabValue, setTabValue] = useState(initialTab);
   const [workflow, setWorkflow] = useState(null);
@@ -105,12 +108,12 @@ const WorkflowDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [executionsLoading, setExecutionsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [infoMessage, setInfoMessage] = useState(null);
+  const [actionStates, setActionStates] = useState({});
   const [executeDialog, setExecuteDialog] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [currentExecution, setCurrentExecution] = useState(null);
-  // Polling-related state (commented out - manual refresh only)
-  // const [taskId, setTaskId] = useState(null);
-  // const [pollingInterval, setPollingInterval] = useState(null);
   const [logsDialog, setLogsDialog] = useState({
     open: false,
     logs: [],
@@ -136,17 +139,8 @@ const WorkflowDetailPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflowId]);
 
-  // Automatic polling disabled - manual refresh only via refresh icon button
-  // useEffect(() => {
-  //   let interval;
-  //   if (currentExecution && (currentExecution.status === 'running' || currentExecution.status === 'queued')) {
-  //     interval = setInterval(checkExecutionStatus, 3000); // Poll every 3 seconds
-  //   }
-  //   return () => {
-  //     if (interval) clearInterval(interval);
-  //   };
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [currentExecution]);
+  // Manual refresh only - no automatic polling
+  // Users can refresh execution status using the refresh icon button
 
   const loadWorkflowData = async () => {
     try {
@@ -348,18 +342,186 @@ const WorkflowDetailPage = () => {
     // Check permission
     if (!canStopExecution) {
       setError('You do not have permission to stop executions');
+      setTimeout(() => setError(null), 5000);
+      return;
+    }
+
+    // Prevent duplicate requests
+    if (actionStates[executionId]?.stopping) {
       return;
     }
 
     try {
-      setLoading(true);
+      // Set execution-specific loading state
+      setActionStates(prev => ({
+        ...prev,
+        [executionId]: { ...prev[executionId], stopping: true }
+      }));
+
       await serverMaskingAPI.stopExecution(workflow.id, executionId);
+
+      // Success - show success message
       setError(null);
+      setInfoMessage(null);
+      setSuccessMessage('Execution stopped successfully');
+      setTimeout(() => setSuccessMessage(null), 5000);
+
       await loadWorkflowData(); // Reload to show updated status
     } catch (err) {
-      setError(err.message || 'Failed to stop execution');
+      if (err.response?.status === 400) {
+        const detail = err.response.data?.detail || '';
+        setError(detail || 'Cannot stop execution');
+      } else if (err.code === 'ECONNABORTED' || err.message.includes('Network')) {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError(err.response?.data?.detail || err.message || 'Failed to stop execution');
+      }
+      setTimeout(() => setError(null), 5000);
     } finally {
-      setLoading(false);
+      // Clear execution-specific loading state
+      setActionStates(prev => ({
+        ...prev,
+        [executionId]: { ...prev[executionId], stopping: false }
+      }));
+    }
+  };
+
+  const handlePauseExecution = async (executionId) => {
+    // Check permission
+    if (!canPauseExecution) {
+      setError('You do not have permission to pause executions');
+      setTimeout(() => setError(null), 5000);
+      return;
+    }
+
+    // Prevent duplicate requests
+    if (actionStates[executionId]?.pausing) {
+      return;
+    }
+
+    try {
+      // Set execution-specific loading state
+      setActionStates(prev => ({
+        ...prev,
+        [executionId]: { ...prev[executionId], pausing: true }
+      }));
+
+      const response = await serverMaskingAPI.pauseExecution(workflow.id, executionId);
+
+      // Success - show success message
+      setError(null);
+      setInfoMessage(null);
+      const batchInfo = response.data?.last_completed_batch
+        ? ` at batch ${response.data.last_completed_batch}`
+        : '';
+      setSuccessMessage(`Execution paused successfully${batchInfo}`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+
+      await loadWorkflowData(); // Reload to show updated status
+    } catch (err) {
+      // Handle different error types
+      if (err.response?.status === 400) {
+        const detail = err.response.data?.detail || '';
+
+        // Handle "already pausing" or "already paused" as info, not error
+        if (detail.toLowerCase().includes('already') ||
+            detail.toLowerCase().includes('paused')) {
+          setError(null);
+          setSuccessMessage(null);
+          setInfoMessage(detail);
+          setTimeout(() => setInfoMessage(null), 5000);
+        } else if (detail.toLowerCase().includes('completed')) {
+          setError(null);
+          setSuccessMessage(null);
+          setInfoMessage('Execution has already completed');
+          setTimeout(() => setInfoMessage(null), 5000);
+        } else {
+          setError(detail || 'Cannot pause execution');
+          setTimeout(() => setError(null), 5000);
+        }
+      } else if (err.code === 'ECONNABORTED' || err.message.includes('Network')) {
+        setError('Network error. Please check your connection and try again.');
+        setTimeout(() => setError(null), 7000);
+      } else {
+        setError(err.response?.data?.detail || err.message || 'Failed to pause execution');
+        setTimeout(() => setError(null), 5000);
+      }
+    } finally {
+      // Clear execution-specific loading state
+      setActionStates(prev => ({
+        ...prev,
+        [executionId]: { ...prev[executionId], pausing: false }
+      }));
+    }
+  };
+
+  const handleResumeExecution = async (executionId) => {
+    // Check permission
+    if (!canResumeExecution) {
+      setError('You do not have permission to resume executions');
+      setTimeout(() => setError(null), 5000);
+      return;
+    }
+
+    // Prevent duplicate requests
+    if (actionStates[executionId]?.resuming) {
+      return;
+    }
+
+    try {
+      // Set execution-specific loading state
+      setActionStates(prev => ({
+        ...prev,
+        [executionId]: { ...prev[executionId], resuming: true }
+      }));
+
+      const response = await serverMaskingAPI.resumeExecution(workflow.id, executionId);
+
+      // Success - show success message
+      setError(null);
+      setInfoMessage(null);
+      const batchInfo = response.data?.resume_from_batch
+        ? ` from batch ${response.data.resume_from_batch}`
+        : '';
+      setSuccessMessage(`Execution resumed successfully${batchInfo}`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+
+      await loadWorkflowData(); // Reload to show updated status
+    } catch (err) {
+      // Handle different error types
+      if (err.response?.status === 400) {
+        const detail = err.response.data?.detail || '';
+
+        // Handle "already running" as info, not error
+        if (detail.toLowerCase().includes('running') ||
+            detail.toLowerCase().includes('already')) {
+          setError(null);
+          setSuccessMessage(null);
+          setInfoMessage(detail);
+          setTimeout(() => setInfoMessage(null), 5000);
+        } else if (detail.toLowerCase().includes('completed') ||
+                   detail.toLowerCase().includes('failed')) {
+          setError(null);
+          setSuccessMessage(null);
+          setInfoMessage('Cannot resume: ' + detail);
+          setTimeout(() => setInfoMessage(null), 5000);
+        } else {
+          setError(detail || 'Cannot resume execution');
+          setTimeout(() => setError(null), 5000);
+        }
+      } else if (err.code === 'ECONNABORTED' || err.message.includes('Network')) {
+        setError('Network error. Please check your connection and try again.');
+        setTimeout(() => setError(null), 7000);
+      } else {
+        setError(err.response?.data?.detail || err.message || 'Failed to resume execution');
+        setTimeout(() => setError(null), 5000);
+      }
+    } finally {
+      // Clear execution-specific loading state
+      setActionStates(prev => ({
+        ...prev,
+        [executionId]: { ...prev[executionId], resuming: false }
+      }));
     }
   };
 
@@ -606,6 +768,15 @@ const WorkflowDetailPage = () => {
             icon={<ScheduleIcon />}
             label="Queued"
             color="info"
+            size="small"
+          />
+        );
+      case 'paused':
+        return (
+          <Chip
+            icon={<PauseIcon />}
+            label="Paused"
+            color="warning"
             size="small"
           />
         );
@@ -1234,6 +1405,11 @@ const WorkflowDetailPage = () => {
                     ? Math.round((new Date(execution.completed_at) - new Date(execution.started_at)) / 1000)
                     : null;
 
+                  // Calculate progress percentage
+                  const progressPercentage = execution.records_total > 0
+                    ? Math.round((execution.records_processed / execution.records_total) * 100)
+                    : 0;
+
                   return (
                     <TableRow key={execution.id}>
                       <TableCell align="left">
@@ -1251,7 +1427,28 @@ const WorkflowDetailPage = () => {
                         {execution.completed_at ? new Date(execution.completed_at).toLocaleString() : '-'}
                       </TableCell>
                       <TableCell align="left">{execution.records_total || 0}</TableCell>
-                      <TableCell align="left">{execution.records_processed || 0}</TableCell>
+                      <TableCell align="left">
+                        <Box sx={{ minWidth: 150 }}>
+                          <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
+                            <Typography variant="body2">
+                              {execution.records_processed || 0}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {progressPercentage}%
+                            </Typography>
+                          </Box>
+                          <LinearProgress
+                            variant="determinate"
+                            value={progressPercentage}
+                            sx={{ height: 6, borderRadius: 1 }}
+                          />
+                          {execution.last_completed_batch !== undefined && execution.last_completed_batch !== null && (
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                              Batch {execution.last_completed_batch}
+                            </Typography>
+                          )}
+                        </Box>
+                      </TableCell>
                       <TableCell align="left">{formatDuration(duration)}</TableCell>
                       <TableCell align="left">
                         <Box display="flex" gap={1}>
@@ -1265,14 +1462,53 @@ const WorkflowDetailPage = () => {
                             <ViewLogsIcon fontSize="small" />
                           </IconButton>
                           {execution.status === 'running' && (
+                            <ProtectedAction action="execution.pause" showDisabled>
+                              <IconButton
+                                size="small"
+                                onClick={() => handlePauseExecution(execution.id)}
+                                disabled={actionStates[execution.id]?.pausing}
+                                title={actionStates[execution.id]?.pausing ? "Pausing..." : "Pause Execution"}
+                                color="warning"
+                              >
+                                {actionStates[execution.id]?.pausing ? (
+                                  <CircularProgress size={16} />
+                                ) : (
+                                  <PauseIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </ProtectedAction>
+                          )}
+                          {execution.status === 'paused' && (
+                            <ProtectedAction action="execution.resume" showDisabled>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleResumeExecution(execution.id)}
+                                disabled={actionStates[execution.id]?.resuming}
+                                title={actionStates[execution.id]?.resuming ? "Resuming..." : "Resume Execution"}
+                                color="success"
+                              >
+                                {actionStates[execution.id]?.resuming ? (
+                                  <CircularProgress size={16} />
+                                ) : (
+                                  <PlayIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </ProtectedAction>
+                          )}
+                          {(execution.status === 'running' || execution.status === 'paused') && (
                             <ProtectedAction action="execution.stop" showDisabled>
                               <IconButton
                                 size="small"
                                 onClick={() => handleStopExecution(execution.id)}
-                                title="Stop Execution"
+                                disabled={actionStates[execution.id]?.stopping}
+                                title={actionStates[execution.id]?.stopping ? "Stopping..." : "Stop Execution"}
                                 color="error"
                               >
-                                <StopIcon fontSize="small" />
+                                {actionStates[execution.id]?.stopping ? (
+                                  <CircularProgress size={16} />
+                                ) : (
+                                  <StopIcon fontSize="small" />
+                                )}
                               </IconButton>
                             </ProtectedAction>
                           )}
@@ -1611,13 +1847,34 @@ const WorkflowDetailPage = () => {
   );
 
   const workflowDetailContent = () => {
-    // Show error first if it exists
-    if (error && !loading) {
-      return (
-        <Box>
-          <Alert severity="error" sx={{ mb: 2 }}>
+    // Show notifications (success, info, error) - ALWAYS rendered at top
+    const notifications = (
+      <Box>
+        {successMessage && (
+          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMessage(null)}>
+            {successMessage}
+          </Alert>
+        )}
+        {infoMessage && (
+          <Alert severity="info" sx={{ mb: 2 }} onClose={() => setInfoMessage(null)}>
+            {infoMessage}
+          </Alert>
+        )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
             {error}
           </Alert>
+        )}
+      </Box>
+    );
+
+    // Always render notifications, then show appropriate state below
+    return (
+      <Box sx={{ width: '100%' }}>
+        {notifications}
+
+        {/* Show error state with retry button */}
+        {error && !loading && !workflow && (
           <Button
             variant="outlined"
             onClick={loadWorkflowData}
@@ -1625,34 +1882,26 @@ const WorkflowDetailPage = () => {
           >
             Retry
           </Button>
-        </Box>
-      );
-    }
+        )}
 
-    // Show loading spinner
-    if (loading) {
-      return (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
-      );
-    }
+        {/* Show loading spinner */}
+        {loading && (
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress />
+          </Box>
+        )}
 
-    // Show generic not found only if no error and no workflow
-    if (!workflow) {
-      console.log('[DEBUG] Showing "not found" - workflow:', workflow, 'loading:', loading, 'error:', error);
-      return (
-        <Box>
+        {/* Show not found message */}
+        {!loading && !workflow && (
           <Alert severity="error">
             Workflow not found
           </Alert>
-        </Box>
-      );
-    }
+        )}
 
-    return (
-      <Box sx={{ width: '100%' }}>
-        <Box display="flex" alignItems="center" mb={1}>
+        {/* Show main content when workflow is loaded */}
+        {!loading && workflow && (
+          <>
+            <Box display="flex" alignItems="center" mb={1}>
           <IconButton
             onClick={() => navigate('/server/workflows')}
             sx={{
@@ -1675,63 +1924,59 @@ const WorkflowDetailPage = () => {
           {getStatusChip(workflow.status)}
         </Box>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 1 }}>
-          <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
-            <Tab label="Overview" sx={{ textTransform: 'none' }} />
-            <Tab label="Execution History" sx={{ textTransform: 'none' }} />
-            <Tab label="Preview Masking" sx={{ textTransform: 'none' }} />
-          </Tabs>
-        </Box>
-
-        <TabPanel value={tabValue} index={0}>
-          {renderWorkflowOverview()}
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={1}>
-          {renderExecutionHistory()}
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={2}>
-          {renderPreviewMasking()}
-        </TabPanel>
-
-        <Dialog open={executeDialog} onClose={() => setExecuteDialog(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Execute Workflow</DialogTitle>
-          <DialogContent>
-            <Typography variant="body1" gutterBottom>
-              Are you sure you want to execute this workflow?
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              This will start the in-place PII masking process on the selected table.
-              The process may take some time depending on the amount of data.
-            </Typography>
-
-            <Box mt={2} p={2} bgcolor="grey.100" borderRadius={1}>
-              <Typography variant="subtitle2">Workflow Summary:</Typography>
-              <Typography variant="body2">• Table: {workflow.schema_name}.{workflow.table_name}</Typography>
-              <Typography variant="body2">
-                • {workflow.column_mappings?.filter(col => col.is_pii).length || 0} PII column(s) to mask
-              </Typography>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 1 }}>
+              <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
+                <Tab label="Overview" sx={{ textTransform: 'none' }} />
+                <Tab label="Execution History" sx={{ textTransform: 'none' }} />
+                <Tab label="Preview Masking" sx={{ textTransform: 'none' }} />
+              </Tabs>
             </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setExecuteDialog(false)}>Cancel</Button>
-            <Button
-              onClick={handleExecuteWorkflow}
-              variant="contained"
-              disabled={executing}
-            >
-              {executing && <CircularProgress size={20} sx={{ mr: 1 }} />}
-              Execute
-            </Button>
-          </DialogActions>
-        </Dialog>
+
+            <TabPanel value={tabValue} index={0}>
+              {renderWorkflowOverview()}
+            </TabPanel>
+
+            <TabPanel value={tabValue} index={1}>
+              {renderExecutionHistory()}
+            </TabPanel>
+
+            <TabPanel value={tabValue} index={2}>
+              {renderPreviewMasking()}
+            </TabPanel>
+
+            <Dialog open={executeDialog} onClose={() => setExecuteDialog(false)} maxWidth="sm" fullWidth>
+              <DialogTitle>Execute Workflow</DialogTitle>
+              <DialogContent>
+                <Typography variant="body1" gutterBottom>
+                  Are you sure you want to execute this workflow?
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  This will start the in-place PII masking process on the selected table.
+                  The process may take some time depending on the amount of data.
+                </Typography>
+
+                <Box mt={2} p={2} bgcolor="grey.100" borderRadius={1}>
+                  <Typography variant="subtitle2">Workflow Summary:</Typography>
+                  <Typography variant="body2">• Table: {workflow.schema_name}.{workflow.table_name}</Typography>
+                  <Typography variant="body2">
+                    • {workflow.column_mappings?.filter(col => col.is_pii).length || 0} PII column(s) to mask
+                  </Typography>
+                </Box>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setExecuteDialog(false)}>Cancel</Button>
+                <Button
+                  onClick={handleExecuteWorkflow}
+                  variant="contained"
+                  disabled={executing}
+                >
+                  {executing && <CircularProgress size={20} sx={{ mr: 1 }} />}
+                  Execute
+                </Button>
+              </DialogActions>
+            </Dialog>
+          </>
+        )}
       </Box>
     );
   };

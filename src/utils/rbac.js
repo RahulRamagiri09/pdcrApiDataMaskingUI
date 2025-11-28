@@ -19,6 +19,8 @@ const PERMISSIONS = {
     'execution.start',
     'execution.view',
     'execution.stop',
+    'execution.pause',
+    'execution.resume',
     // Preview/Masking permissions
     'preview.view',
     'masking.view',
@@ -50,6 +52,8 @@ const PERMISSIONS = {
     'execution.start',
     'execution.view',
     'execution.stop',
+    'execution.pause',
+    'execution.resume',
     // Preview/Masking permissions
     'preview.view',
     'masking.view',

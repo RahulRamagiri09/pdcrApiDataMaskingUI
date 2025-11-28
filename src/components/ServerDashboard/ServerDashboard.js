@@ -15,6 +15,7 @@ import {
   ListItemIcon,
   ListItemText,
 } from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
 import {
   Storage as StorageIcon,
   PlayArrow as PlayIcon,
@@ -61,7 +62,9 @@ const ServerDashboard = () => {
     workflows: 0,
     recentWorkflows: [],
   });
+  const [workflowExecutions, setWorkflowExecutions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tableLoading, setTableLoading] = useState(false);
   const [error, setError] = useState(null);
   const [quickActionsAnchor, setQuickActionsAnchor] = useState(null);
 
@@ -99,6 +102,9 @@ const ServerDashboard = () => {
         workflows: Array.isArray(workflowsData) ? workflowsData.length : 0,
         recentWorkflows: Array.isArray(workflowsData) ? workflowsData.slice(0, 5) : [],
       });
+
+      // Set last 10 workflows for the table
+      setWorkflowExecutions(Array.isArray(workflowsData) ? workflowsData.slice(0, 10) : []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -139,6 +145,58 @@ const ServerDashboard = () => {
         return <PlayIcon />;
     }
   };
+
+  // Table columns configuration
+  const columns = [
+    {
+      field: 'name',
+      headerName: 'Name',
+      flex: 1,
+      minWidth: 200,
+    },
+    {
+      field: 'description',
+      headerName: 'Description',
+      flex: 1.5,
+      minWidth: 250,
+      renderCell: (params) => params.value || 'No description',
+    },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 150,
+      renderCell: (params) => (
+        <Chip
+          label={params.value || 'draft'}
+          color={getStatusColor(params.value || 'draft')}
+          size="small"
+          icon={getStatusIcon(params.value || 'draft')}
+        />
+      ),
+    },
+    {
+      field: 'updated_at',
+      headerName: 'Completed Date',
+      width: 180,
+      renderCell: (params) => {
+        if (!params.value) return '-';
+        const date = new Date(params.value);
+        return date.toLocaleString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      },
+    },
+    {
+      field: 'user_name',
+      headerName: 'User Name',
+      width: 150,
+      renderCell: (params) => params.value || 'N/A',
+    },
+  ];
 
   if (loading) {
     return (
@@ -326,6 +384,50 @@ const ServerDashboard = () => {
                     </Box>
                   </Box>
                 ))}
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Workflow Executions Table */}
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Recent Workflow Executions
+            </Typography>
+            {workflowExecutions.length === 0 ? (
+              <Alert severity="info">
+                No workflow executions yet.
+              </Alert>
+            ) : (
+              <Box sx={{ height: 450, width: '100%' }}>
+                <DataGrid
+                  rows={workflowExecutions}
+                  columns={columns}
+                  initialState={{
+                    pagination: {
+                      paginationModel: { pageSize: 25, page: 0 },
+                    },
+                  }}
+                  pageSizeOptions={[25, 50, 100]}
+                  disableSelectionOnClick
+                  loading={tableLoading}
+                  onRowClick={(params) => navigate(`/server/workflows/${params.row.id}`)}
+                  sx={{
+                    '& .MuiDataGrid-row': {
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: 'action.hover',
+                      },
+                    },
+                    '& .MuiDataGrid-cell:focus': {
+                      outline: 'none',
+                    },
+                    '& .MuiDataGrid-row:focus': {
+                      outline: 'none',
+                    },
+                  }}
+                />
               </Box>
             )}
           </CardContent>

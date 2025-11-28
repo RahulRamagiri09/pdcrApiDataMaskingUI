@@ -255,10 +255,20 @@ const ServerWorkflowsPage = () => {
               <DataGrid
                 rows={workflows}
                 columns={columns}
-                pageSize={25}
-                rowsPerPageOptions={[10, 25, 50]}
+                initialState={{
+                  pagination: {
+                    paginationModel: { pageSize: 25, page: 0 },
+                  },
+                }}
+                pageSizeOptions={[25, 50, 100]}
                 disableSelectionOnClick
                 getRowId={(row) => row.id}
+                autoHeight={false}
+                sx={{
+                  '& .MuiDataGrid-virtualScroller': {
+                    minHeight: '400px',
+                  },
+                }}
               />
             </Box>
           </CardContent>

@@ -1901,7 +1901,7 @@ const WorkflowDetailPage = () => {
         {/* Show main content when workflow is loaded */}
         {!loading && workflow && (
           <>
-            <Box display="flex" alignItems="center" mb={1}>
+            <Box display="flex" alignItems="center" mb={0}>
           <IconButton
             onClick={() => navigate('/server/workflows')}
             sx={{
@@ -1917,14 +1917,14 @@ const WorkflowDetailPage = () => {
             <Typography variant="h4">
               {workflow.name}
             </Typography>
-            <Typography variant="subtitle1" color="text.secondary">
+            {/* <Typography variant="subtitle1" color="text.secondary">
               Workflow Details & Execution History
-            </Typography>
+            </Typography> */}
           </Box>
           {getStatusChip(workflow.status)}
         </Box>
 
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 1 }}>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 0 }}>
               <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
                 <Tab label="Overview" sx={{ textTransform: 'none' }} />
                 <Tab label="Execution History" sx={{ textTransform: 'none' }} />

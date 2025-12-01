@@ -28,6 +28,7 @@ import {
   AccountTree as WorkflowIcon,
   Visibility as VisibilityIcon,
   Stop as StopIcon,
+  Pause as PauseIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../common/PageHeader';
@@ -120,6 +121,8 @@ const ServerDashboard = () => {
         return 'warning';
       case 'failed':
         return 'error';
+      case 'paused':
+        return 'warning';
       case 'cancelled':
       case 'stopped':
         return 'info';
@@ -138,6 +141,8 @@ const ServerDashboard = () => {
         return <CircularProgress size={16} />;
       case 'failed':
         return <ErrorIcon />;
+      case 'paused':
+        return <PauseIcon />;
       case 'cancelled':
       case 'stopped':
         return <StopIcon />;

@@ -19,9 +19,11 @@ import {
   Error as ErrorIcon,
   Schedule as ScheduleIcon,
   Stop as StopIcon,
+  Pause as PauseIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { serverWorkflowsAPI } from '../../services/api';
 import PageHeader from '../common/PageHeader';
 import ProtectedAction from '../common/ProtectedAction';
@@ -44,6 +46,7 @@ const theme = createTheme({
 
 const ServerWorkflowsPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   // const user = getCurrentUser();
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,9 +56,10 @@ const ServerWorkflowsPage = () => {
   const canCreate = usePermission('workflow.create');
   const canDelete = usePermission('workflow.delete');
 
+  // Load workflows on mount and when navigating back to this page
   useEffect(() => {
     loadWorkflows();
-  }, []);
+  }, [location.pathname]);
 
   const loadWorkflows = async () => {
     try {
@@ -125,6 +129,15 @@ const ServerWorkflowsPage = () => {
             icon={<ScheduleIcon />}
             label="Pending"
             color="default"
+            size="small"
+          />
+        );
+      case 'paused':
+        return (
+          <Chip
+            icon={<PauseIcon />}
+            label="Paused"
+            color="warning"
             size="small"
           />
         );
@@ -225,15 +238,25 @@ const ServerWorkflowsPage = () => {
           <Typography variant="subtitle1" color="text.secondary">
             Create and manage in-place PII masking workflows (same database/schema/table)
           </Typography>
-          <ProtectedAction action="workflow.create">
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => navigate('/server/workflows/create')}
+          <Box display="flex" gap={1}>
+            <IconButton
+              onClick={loadWorkflows}
+              color="primary"
+              title="Refresh workflows"
+              disabled={loading}
             >
-              Create Workflow
-            </Button>
-          </ProtectedAction>
+              <RefreshIcon />
+            </IconButton>
+            <ProtectedAction action="workflow.create">
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => navigate('/server/workflows/create')}
+              >
+                Create Workflow
+              </Button>
+            </ProtectedAction>
+          </Box>
         </Box>
 
         {error && (

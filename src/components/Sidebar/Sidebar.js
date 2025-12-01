@@ -155,6 +155,7 @@ const Sidebar = () => {
     >
       {/* Logo Section - Top */}
       <Box
+        onClick={() => handleNavigation('/server/dashboard')}
         sx={{
           display: 'flex',
           alignItems: 'center',
@@ -163,6 +164,10 @@ const Sidebar = () => {
           minHeight: 70,
           backgroundColor: '#0b2677',
           color: 'white',
+          cursor: 'pointer',
+          '&:hover': {
+            backgroundColor: '#0a1f5e',
+          },
         }}
       >
         {isExpanded ? (

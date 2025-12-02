@@ -431,6 +431,53 @@ const ServerDashboard = () => {
                     '& .MuiDataGrid-row:focus': {
                       outline: 'none',
                     },
+                    '& .MuiDataGrid-columnHeaders': {
+                      backgroundColor: '#0b2677',
+                      color: 'white',
+                      minHeight: '40px !important',
+                      maxHeight: '40px !important',
+                    },
+                    '& .MuiDataGrid-columnHeader': {
+                      backgroundColor: '#0b2677',
+                      minHeight: '40px !important',
+                      maxHeight: '40px !important',
+                    },
+                    '& .MuiDataGrid-columnHeaderTitle': {
+                      color: 'white',
+                    },
+                    '& .MuiDataGrid-menuIcon': {
+                      color: 'white',
+                    },
+                    '& .MuiDataGrid-menuIcon:hover': {
+                      color: 'white',
+                    },
+                    '& .MuiDataGrid-menuIcon .MuiSvgIcon-root': {
+                      color: 'white',
+                    },
+                    '& .MuiDataGrid-menuIcon .MuiSvgIcon-root:hover': {
+                      color: 'white',
+                    },
+                    '& .MuiDataGrid-columnHeader:hover .MuiDataGrid-menuIcon': {
+                      color: 'white',
+                    },
+                    '& .MuiDataGrid-columnHeader .MuiIconButton-root:hover': {
+                      color: 'white',
+                    },
+                    '& .MuiDataGrid-iconButtonContainer': {
+                      color: 'white',
+                    },
+                    '& .MuiDataGrid-filterIcon': {
+                      color: 'white',
+                    },
+                    '& .MuiDataGrid-filterIcon:hover': {
+                      color: 'white',
+                    },
+                    '& .MuiDataGrid-sortIcon': {
+                      color: 'white',
+                    },
+                    '& .MuiDataGrid-sortIcon:hover': {
+                      color: 'white',
+                    },
                   }}
                 />
               </Box>

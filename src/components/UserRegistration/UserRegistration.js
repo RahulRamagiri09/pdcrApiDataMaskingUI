@@ -279,7 +279,9 @@ const UserRegistration = () => {
                 </option>
               ))}
             </select>
-            {loadingRoles && <span className="text-sm text-gray-500 mt-1 block">Loading roles...</span>}
+            <div className="h-6 mt-1">
+              {loadingRoles && <span className="text-sm text-gray-500 block">Loading roles...</span>}
+            </div>
           </div>
 
           <button

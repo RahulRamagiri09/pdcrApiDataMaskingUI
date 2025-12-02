@@ -21,6 +21,7 @@ import {
   CheckCircle as CheckIcon,
   Error as ErrorIcon,
   Storage as StorageIcon,
+  Hub as HubIcon,
 } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import { serverConnectionsAPI } from '../../services/api';
@@ -227,15 +228,6 @@ const ServerConnectionsPage = () => {
           <Typography variant="subtitle1" color="text.secondary">
             Manage connections for in-place PII masking workflows (same database/schema/table)
           </Typography>
-          <ProtectedAction action="connection.create">
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setCreateDialogOpen(true)}
-            >
-              Add Connection
-            </Button>
-          </ProtectedAction>
         </Box>
 
         {error && (
@@ -246,11 +238,22 @@ const ServerConnectionsPage = () => {
 
         <Card>
           <CardContent>
-            <Box display="flex" alignItems="center" mb={2}>
-              <StorageIcon sx={{ mr: 1, color: 'primary.main' }} />
-              <Typography variant="h6">
-                Active Connections ({connections?.length || 0})
-              </Typography>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Box display="flex" alignItems="center">
+                <HubIcon sx={{ mr: 1, color: 'primary.main' }} />
+                <Typography variant="h6">
+                  Active Connections ({connections?.length || 0})
+                </Typography>
+              </Box>
+              <ProtectedAction action="connection.create">
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setCreateDialogOpen(true)}
+                >
+                  Add Connection
+                </Button>
+              </ProtectedAction>
             </Box>
 
             <Box sx={{ height: 600, width: '100%' }}>
@@ -269,6 +272,53 @@ const ServerConnectionsPage = () => {
                 sx={{
                   '& .MuiDataGrid-virtualScroller': {
                     minHeight: '400px',
+                  },
+                  '& .MuiDataGrid-columnHeaders': {
+                    backgroundColor: '#0b2677',
+                    color: 'white',
+                    minHeight: '40px !important',
+                    maxHeight: '40px !important',
+                  },
+                  '& .MuiDataGrid-columnHeader': {
+                    backgroundColor: '#0b2677',
+                    minHeight: '40px !important',
+                    maxHeight: '40px !important',
+                  },
+                  '& .MuiDataGrid-columnHeaderTitle': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-menuIcon': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-menuIcon:hover': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-menuIcon .MuiSvgIcon-root': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-menuIcon .MuiSvgIcon-root:hover': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-columnHeader:hover .MuiDataGrid-menuIcon': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-columnHeader .MuiIconButton-root:hover': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-iconButtonContainer': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-filterIcon': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-filterIcon:hover': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-sortIcon': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-sortIcon:hover': {
+                    color: 'white',
                   },
                 }}
               />

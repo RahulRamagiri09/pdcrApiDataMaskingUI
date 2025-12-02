@@ -1388,7 +1388,17 @@ const WorkflowDetailPage = () => {
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
-                <TableRow>
+                <TableRow
+                  sx={{
+                    backgroundColor: '#0b2677',
+                    height: '40px',
+                    '& .MuiTableCell-root': {
+                      color: 'white',
+                      paddingTop: '8px',
+                      paddingBottom: '8px',
+                    },
+                  }}
+                >
                   <TableCell align="left">Execution ID</TableCell>
                   <TableCell align="left">Status</TableCell>
                   <TableCell align="left">Started</TableCell>

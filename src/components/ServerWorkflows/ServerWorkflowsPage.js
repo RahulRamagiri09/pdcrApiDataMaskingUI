@@ -238,25 +238,6 @@ const ServerWorkflowsPage = () => {
           <Typography variant="subtitle1" color="text.secondary">
             Create and manage in-place PII masking workflows (same database/schema/table)
           </Typography>
-          <Box display="flex" gap={1}>
-            <IconButton
-              onClick={loadWorkflows}
-              color="primary"
-              title="Refresh workflows"
-              disabled={loading}
-            >
-              <RefreshIcon />
-            </IconButton>
-            <ProtectedAction action="workflow.create">
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => navigate('/server/workflows/create')}
-              >
-                Create Workflow
-              </Button>
-            </ProtectedAction>
-          </Box>
         </Box>
 
         {error && (
@@ -267,11 +248,32 @@ const ServerWorkflowsPage = () => {
 
         <Card>
           <CardContent>
-            <Box display="flex" alignItems="center" mb={2}>
-              <PlayIcon sx={{ mr: 1 }} />
-              <Typography variant="h6">
-                All Workflows ({workflows?.length || 0})
-              </Typography>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Box display="flex" alignItems="center">
+                <PlayIcon sx={{ mr: 1 }} />
+                <Typography variant="h6">
+                  All Workflows ({workflows?.length || 0})
+                </Typography>
+              </Box>
+              <Box display="flex" gap={1}>
+                <IconButton
+                  onClick={loadWorkflows}
+                  color="primary"
+                  title="Refresh workflows"
+                  disabled={loading}
+                >
+                  <RefreshIcon />
+                </IconButton>
+                <ProtectedAction action="workflow.create">
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => navigate('/server/workflows/create')}
+                  >
+                    Create Workflow
+                  </Button>
+                </ProtectedAction>
+              </Box>
             </Box>
 
             <Box sx={{ height: 600, width: '100%' }}>
@@ -290,6 +292,53 @@ const ServerWorkflowsPage = () => {
                 sx={{
                   '& .MuiDataGrid-virtualScroller': {
                     minHeight: '400px',
+                  },
+                  '& .MuiDataGrid-columnHeaders': {
+                    backgroundColor: '#0b2677',
+                    color: 'white',
+                    minHeight: '40px !important',
+                    maxHeight: '40px !important',
+                  },
+                  '& .MuiDataGrid-columnHeader': {
+                    backgroundColor: '#0b2677',
+                    minHeight: '40px !important',
+                    maxHeight: '40px !important',
+                  },
+                  '& .MuiDataGrid-columnHeaderTitle': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-menuIcon': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-menuIcon:hover': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-menuIcon .MuiSvgIcon-root': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-menuIcon .MuiSvgIcon-root:hover': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-columnHeader:hover .MuiDataGrid-menuIcon': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-columnHeader .MuiIconButton-root:hover': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-iconButtonContainer': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-filterIcon': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-filterIcon:hover': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-sortIcon': {
+                    color: 'white',
+                  },
+                  '& .MuiDataGrid-sortIcon:hover': {
+                    color: 'white',
                   },
                 }}
               />

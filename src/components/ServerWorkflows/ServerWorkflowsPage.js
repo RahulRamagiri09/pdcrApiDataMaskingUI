@@ -250,7 +250,7 @@ const ServerWorkflowsPage = () => {
           <CardContent>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
               <Box display="flex" alignItems="center">
-                <PlayIcon sx={{ mr: 1 }} />
+                {/* <PlayIcon sx={{ mr: 1 }} /> */}
                 <Typography variant="h6">
                   All Workflows ({workflows?.length || 0})
                 </Typography>
@@ -292,6 +292,11 @@ const ServerWorkflowsPage = () => {
                 sx={{
                   '& .MuiDataGrid-virtualScroller': {
                     minHeight: '400px',
+                    '&::-webkit-scrollbar': {
+                      display: 'none',
+                    },
+                    msOverflowStyle: 'none',
+                    scrollbarWidth: 'none',
                   },
                   '& .MuiDataGrid-columnHeaders': {
                     backgroundColor: '#0b2677',

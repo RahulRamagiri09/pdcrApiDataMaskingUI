@@ -123,7 +123,29 @@ const Sidebar = () => {
 
     if (!isExpanded) {
       return (
-        <Tooltip title={item.text} placement="right" arrow key={item.path}>
+        <Tooltip
+          title={item.text}
+          placement="right"
+          arrow
+          key={item.path}
+          componentsProps={{
+            tooltip: {
+              sx: {
+                bgcolor: 'white',
+                color: '#0b2677',
+                boxShadow: '0px 5px 15px rgba(0,0,0,0.2)',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                py: 1,
+                px: 2,
+                minWidth: 100,
+                '& .MuiTooltip-arrow': {
+                  color: 'white',
+                },
+              },
+            },
+          }}
+        >
           {button}
         </Tooltip>
       );
@@ -160,8 +182,8 @@ const Sidebar = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          p: 2,
-          minHeight: 70,
+          p: 1.5,
+          minHeight: 56,
           backgroundColor: '#0b2677',
           color: 'white',
           cursor: 'pointer',
@@ -171,21 +193,21 @@ const Sidebar = () => {
         }}
       >
         {isExpanded ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <img
               src="/logo192.png"
               alt="Logo"
-              style={{ height: '30px', width: '30px' }}
+              style={{ height: '32px', width: '32px' }}
             />
-            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
+            {/* <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
               PII Masking Tool
-            </Typography>
+            </Typography> */}
           </Box>
         ) : (
           <img
             src="/logo192.png"
             alt="Logo"
-            style={{ height: '28px', width: '28px' }}
+            style={{ height: '32px', width: '32px' }}
           />
         )}
       </Box>

@@ -45,13 +45,15 @@ const PageHeader = ({ title, marginX = -1 }) => {
       alignItems="center"
       sx={{
         backgroundColor: '#0b2677',
-        p: 2,
-        height: 70,
+        p: 1.5,
+        height: 56,
         mx: marginX,
-        position: 'relative',
+        position: 'sticky',
+        top: 0,
+        zIndex: 1100,
       }}
     >
-      <Typography variant="h4" sx={{ color: 'white', textAlign: 'center' }}>
+      <Typography variant="h5" sx={{ color: 'white', textAlign: 'center' }}>
         {title}
       </Typography>
 
@@ -70,10 +72,10 @@ const PageHeader = ({ title, marginX = -1 }) => {
               <Avatar
                 alt={user.username}
                 src={user.profilePicture}
-                sx={{ width: 40, height: 40 }}
+                sx={{ width: 32, height: 32 }}
               />
             ) : (
-              <Avatar sx={{ width: 40, height: 40, bgcolor: 'white', color: '#0b2677' }}>
+              <Avatar sx={{ width: 32, height: 32, bgcolor: 'white', color: '#0b2677' }}>
                 <AccountCircleIcon />
               </Avatar>
             )}

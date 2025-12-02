@@ -62,7 +62,7 @@ const RoleRegistration = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#0b2677'}}>
+    <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#f5f5f5'}}>
       <div className="bg-white p-10 rounded-lg shadow-xl w-full max-w-md">
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-8">Create New Role</h2>
 

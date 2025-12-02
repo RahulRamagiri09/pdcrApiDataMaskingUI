@@ -345,57 +345,8 @@ const ServerDashboard = () => {
           </CardContent>
         </Card> */}
 
-        {/* Recent Workflows */}
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Recent Workflows
-            </Typography>
-            {stats.recentWorkflows.length === 0 ? (
-              <Alert severity="info">
-                No workflows yet. Create your first workflow to get started with in-place PII masking.
-              </Alert>
-            ) : (
-              <Box>
-                {stats.recentWorkflows.map((workflow) => (
-                  <Box
-                    key={workflow.id}
-                    sx={{
-                      p: 1,
-                      mb: 1,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 1,
-                      cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                      },
-                    }}
-                    onClick={() => navigate(`/server/workflows/${workflow.id}`)}
-                  >
-                    <Box display="flex" alignItems="center" justifyContent="space-between">
-                      <Box>
-                        <Typography variant="subtitle1">{workflow.name}</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {workflow.description || 'No description'}
-                        </Typography>
-                      </Box>
-                      <Chip
-                        label={workflow.status || 'draft'}
-                        color={getStatusColor(workflow.status || 'draft')}
-                        size="small"
-                        icon={getStatusIcon(workflow.status || 'draft')}
-                      />
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Recent Workflow Executions Table */}
-        <Card sx={{ mt: 3 }}>
+        <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
               Recent Workflow Executions
@@ -419,6 +370,13 @@ const ServerDashboard = () => {
                   loading={tableLoading}
                   onRowClick={(params) => navigate(`/server/workflows/${params.row.id}`)}
                   sx={{
+                    '& .MuiDataGrid-virtualScroller': {
+                      '&::-webkit-scrollbar': {
+                        display: 'none',
+                      },
+                      msOverflowStyle: 'none',
+                      scrollbarWidth: 'none',
+                    },
                     '& .MuiDataGrid-row': {
                       cursor: 'pointer',
                       '&:hover': {
@@ -480,6 +438,55 @@ const ServerDashboard = () => {
                     },
                   }}
                 />
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Workflows */}
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Recent Workflows
+            </Typography>
+            {stats.recentWorkflows.length === 0 ? (
+              <Alert severity="info">
+                No workflows yet. Create your first workflow to get started with in-place PII masking.
+              </Alert>
+            ) : (
+              <Box>
+                {stats.recentWorkflows.map((workflow) => (
+                  <Box
+                    key={workflow.id}
+                    sx={{
+                      p: 1,
+                      mb: 1,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: 'action.hover',
+                      },
+                    }}
+                    onClick={() => navigate(`/server/workflows/${workflow.id}`)}
+                  >
+                    <Box display="flex" alignItems="center" justifyContent="space-between">
+                      <Box>
+                        <Typography variant="subtitle1">{workflow.name}</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {workflow.description || 'No description'}
+                        </Typography>
+                      </Box>
+                      <Chip
+                        label={workflow.status || 'draft'}
+                        color={getStatusColor(workflow.status || 'draft')}
+                        size="small"
+                        icon={getStatusIcon(workflow.status || 'draft')}
+                      />
+                    </Box>
+                  </Box>
+                ))}
               </Box>
             )}
           </CardContent>

@@ -119,7 +119,7 @@ const UserRegistration = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-8" style={{backgroundColor: '#0b2677'}}>
+    <div className="min-h-screen flex items-center justify-center py-8" style={{backgroundColor: '#f5f5f5'}}>
       <div className="bg-white p-10 rounded-lg shadow-xl w-full max-w-2xl">
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-8">User Registration</h2>
 

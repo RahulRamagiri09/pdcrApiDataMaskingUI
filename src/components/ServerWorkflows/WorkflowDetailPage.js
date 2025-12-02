@@ -1014,7 +1014,12 @@ const WorkflowDetailPage = () => {
                 </Box>
               ) : (
                 // Other constraints - Table rendering
-                <TableContainer component={Paper} variant="outlined">
+                <TableContainer component={Paper} variant="outlined" sx={{
+                    overflow: 'auto',
+                    '&::-webkit-scrollbar': { display: 'none' },
+                    msOverflowStyle: 'none',
+                    scrollbarWidth: 'none',
+                  }}>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
@@ -1385,7 +1390,12 @@ const WorkflowDetailPage = () => {
             No executions yet. Click "Execute Workflow" to run this workflow.
           </Typography>
         ) : (
-          <TableContainer component={Paper}>
+          <TableContainer component={Paper} sx={{
+              overflow: 'auto',
+              '&::-webkit-scrollbar': { display: 'none' },
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none',
+            }}>
             <Table>
               <TableHead>
                 <TableRow
@@ -1577,7 +1587,12 @@ const WorkflowDetailPage = () => {
                       color="success"
                     />
                   </Box>
-                  <TableContainer component={Paper}>
+                  <TableContainer component={Paper} sx={{
+                      overflow: 'auto',
+                      '&::-webkit-scrollbar': { display: 'none' },
+                      msOverflowStyle: 'none',
+                      scrollbarWidth: 'none',
+                    }}>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
@@ -1706,7 +1721,12 @@ const WorkflowDetailPage = () => {
                           </Typography>
                         </AccordionSummary>
                         <AccordionDetails>
-                          <TableContainer component={Paper} variant="outlined">
+                          <TableContainer component={Paper} variant="outlined" sx={{
+                              overflow: 'auto',
+                              '&::-webkit-scrollbar': { display: 'none' },
+                              msOverflowStyle: 'none',
+                              scrollbarWidth: 'none',
+                            }}>
                             <Table size="small">
                               <TableHead>
                                 <TableRow>
@@ -1828,7 +1848,10 @@ const WorkflowDetailPage = () => {
               fontSize: '0.875rem',
               lineHeight: 1.6,
               whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word'
+              wordBreak: 'break-word',
+              '&::-webkit-scrollbar': { display: 'none' },
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none',
             }}
           >
             {logsDialog.logs.map((log, index) => (

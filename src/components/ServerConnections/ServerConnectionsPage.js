@@ -240,7 +240,7 @@ const ServerConnectionsPage = () => {
           <CardContent>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
               <Box display="flex" alignItems="center">
-                <HubIcon sx={{ mr: 1, color: 'primary.main' }} />
+                {/* <HubIcon sx={{ mr: 1, color: 'primary.main' }} /> */}
                 <Typography variant="h6">
                   Active Connections ({connections?.length || 0})
                 </Typography>
@@ -272,6 +272,11 @@ const ServerConnectionsPage = () => {
                 sx={{
                   '& .MuiDataGrid-virtualScroller': {
                     minHeight: '400px',
+                    '&::-webkit-scrollbar': {
+                      display: 'none',
+                    },
+                    msOverflowStyle: 'none',
+                    scrollbarWidth: 'none',
                   },
                   '& .MuiDataGrid-columnHeaders': {
                     backgroundColor: '#0b2677',

@@ -633,7 +633,12 @@ const CreateWorkflowPage = () => {
             <Typography variant="h6" gutterBottom>
               Configure Column Mappings for {formData.table_name}
             </Typography>
-            <TableContainer component={Paper}>
+            <TableContainer component={Paper} sx={{
+                overflow: 'auto',
+                '&::-webkit-scrollbar': { display: 'none' },
+                msOverflowStyle: 'none',
+                scrollbarWidth: 'none',
+              }}>
               <Table>
                 <TableHead>
                   <TableRow>

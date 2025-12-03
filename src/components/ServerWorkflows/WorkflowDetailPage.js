@@ -72,6 +72,23 @@ const theme = createTheme({
   },
 });
 
+// Helper function to format date as MM/DD/YYYY HH:MM:SS AM/PM with leading zeros
+const formatDateTime = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12; // the hour '0' should be '12'
+  const hoursStr = String(hours).padStart(2, '0');
+  return `${month}/${day}/${year} ${hoursStr}:${minutes}:${seconds} ${ampm}`;
+};
+
 function TabPanel({ children, value, index, ...other }) {
   return (
     <div
@@ -1292,11 +1309,11 @@ const WorkflowDetailPage = () => {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Created</Typography>
-                <Typography variant="body2">{new Date(workflow.created_at).toLocaleString()}</Typography>
+                <Typography variant="body2">{formatDateTime(workflow.created_at)}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Last Updated</Typography>
-                <Typography variant="body2">{workflow.updated_at ? new Date(workflow.updated_at).toLocaleString() : 'N/A'}</Typography>
+                <Typography variant="body2">{formatDateTime(workflow.updated_at)}</Typography>
               </Grid>
             </Grid>
           </Box>
@@ -1442,9 +1459,9 @@ const WorkflowDetailPage = () => {
                         </Typography>
                       </TableCell>
                       <TableCell align="left">{getStatusChip(execution.status)}</TableCell>
-                      <TableCell align="left">{new Date(execution.started_at).toLocaleString()}</TableCell>
+                      <TableCell align="left">{formatDateTime(execution.started_at)}</TableCell>
                       <TableCell align="left">
-                        {execution.completed_at ? new Date(execution.completed_at).toLocaleString() : '-'}
+                        {execution.completed_at ? formatDateTime(execution.completed_at) : '-'}
                       </TableCell>
                       <TableCell align="left">{execution.records_total || 0}</TableCell>
                       <TableCell align="left">

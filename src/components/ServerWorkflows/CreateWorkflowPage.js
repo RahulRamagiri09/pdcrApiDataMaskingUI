@@ -639,36 +639,37 @@ const CreateWorkflowPage = () => {
                 msOverflowStyle: 'none',
                 scrollbarWidth: 'none',
               }}>
-              <Table>
+              <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Column Name</TableCell>
-                    <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Data Type</TableCell>
-                    <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Is PII</TableCell>
-                    <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>PII Attribute</TableCell>
-                    <TableCell sx={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>Preview</TableCell>
+                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1 }}>Column Name</TableCell>
+                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1 }}>Data Type</TableCell>
+                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1 }}>Is PII</TableCell>
+                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1 }}>PII Attribute</TableCell>
+                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1 }}>Preview</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {formData.column_mappings.map((mapping, index) => {
                     const columnInfo = columns.find(col => col.name === mapping.column_name);
                     return (
-                      <TableRow key={index}>
-                        <TableCell><strong>{mapping.column_name}</strong></TableCell>
-                        <TableCell>
+                      <TableRow key={index} sx={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
+                        <TableCell sx={{ py: 0.5 }}><strong>{mapping.column_name}</strong></TableCell>
+                        <TableCell sx={{ py: 0.5 }}>
                           <Chip
                             label={columnInfo?.data_type || mapping.data_type || 'Unknown'}
                             size="small"
                             variant="outlined"
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ py: 0.5 }}>
                           <Checkbox
                             checked={mapping.is_pii}
                             onChange={(e) => handleColumnMappingChange(index, 'is_pii', e.target.checked)}
+                            size="small"
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ py: 0.5 }}>
                           <FormControl size="small" sx={{ minWidth: 150 }} disabled={!mapping.is_pii}>
                             <Select
                               value={mapping.pii_attribute}
@@ -684,7 +685,7 @@ const CreateWorkflowPage = () => {
                             </Select>
                           </FormControl>
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ py: 0.5 }}>
                           {mapping.is_pii && mapping.pii_attribute && (
                             <IconButton
                               size="small"
@@ -762,19 +763,19 @@ const CreateWorkflowPage = () => {
 
     return (
       <Box>
-        <Box display="flex" alignItems="center" mb={3}>
+        <Box display="flex" alignItems="center" mb={1}>
           <IconButton onClick={() => navigate('/server/workflows')} sx={{ mr: 2 }}>
             <ArrowBackIcon />
           </IconButton>
           <Box>
-            <Typography variant="h4" gutterBottom>
+            <Typography variant="h5">
               {isEditMode ? 'Edit Single Server Workflow' : 'Create New Single Server Workflow'}
             </Typography>
-            <Typography variant="subtitle1" color="text.secondary">
+            {/* <Typography variant="subtitle1" color="text.secondary">
               {isEditMode
                 ? 'Modify your in-place PII masking workflow configuration'
                 : 'Set up a new in-place PII masking workflow (same database/schema/table)'}
-            </Typography>
+            </Typography> */}
           </Box>
         </Box>
 
@@ -859,8 +860,8 @@ const CreateWorkflowPage = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ width: '100%', mt: 0, mb: 3, px: 3 }}>
-        <PageHeader title={isEditMode ? 'Edit Workflow' : 'Create Workflow'} marginX={-3} />
+      <Box sx={{ width: '100%', mt: 0, mb: 3, px: 1 }}>
+        <PageHeader title={isEditMode ? 'Edit Workflow' : 'Create Workflow'} marginX={-1} />
         {createWorkflowContent()}
       </Box>
     </ThemeProvider>

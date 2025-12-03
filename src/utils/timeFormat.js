@@ -1,15 +1,15 @@
 /**
- * Format duration in seconds to a human-readable string
+ * Format duration in seconds to HH:MM:SS format
  * @param {number} seconds - Duration in seconds
- * @returns {string} Formatted duration string
+ * @returns {string} Formatted duration string in HH:MM:SS format
  *
  * Examples:
- * - 50 seconds → "50 sec"
- * - 70 seconds → "1 min 10 sec"
- * - 125 seconds → "2 min 5 sec"
- * - 60 seconds → "1 min"
- * - 3900 seconds → "1hr 5 min"
- * - 7265 seconds → "2hr 1 min 5 sec"
+ * - 50 seconds → "00:00:50"
+ * - 70 seconds → "00:01:10"
+ * - 125 seconds → "00:02:05"
+ * - 60 seconds → "00:01:00"
+ * - 3900 seconds → "01:05:00"
+ * - 7265 seconds → "02:01:05"
  */
 export const formatDuration = (seconds) => {
   if (!seconds && seconds !== 0) {
@@ -18,37 +18,13 @@ export const formatDuration = (seconds) => {
 
   const totalSeconds = Math.round(seconds);
 
-  // Less than 60 seconds
-  if (totalSeconds < 60) {
-    return `${totalSeconds} sec`;
-  }
-
-  // Less than 1 hour (60-3599 seconds)
-  if (totalSeconds < 3600) {
-    const minutes = Math.floor(totalSeconds / 60);
-    const remainingSeconds = totalSeconds % 60;
-
-    if (remainingSeconds === 0) {
-      return `${minutes} min`;
-    }
-
-    return `${minutes} min ${remainingSeconds} sec`;
-  }
-
-  // 1 hour or more (3600+ seconds)
   const hours = Math.floor(totalSeconds / 3600);
-  const remainingMinutes = Math.floor((totalSeconds % 3600) / 60);
-  const remainingSeconds = totalSeconds % 60;
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
 
-  let result = `${hours}hr`;
+  const hoursStr = String(hours).padStart(2, '0');
+  const minutesStr = String(minutes).padStart(2, '0');
+  const secsStr = String(secs).padStart(2, '0');
 
-  if (remainingMinutes > 0) {
-    result += ` ${remainingMinutes} min`;
-  }
-
-  if (remainingSeconds > 0) {
-    result += ` ${remainingSeconds} sec`;
-  }
-
-  return result;
+  return `${hoursStr}:${minutesStr}:${secsStr}`;
 };

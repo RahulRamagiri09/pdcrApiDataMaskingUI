@@ -190,7 +190,10 @@ const WorkflowDetailPage = () => {
           ...workflowData,
           schema_name: firstTableMapping.schema_name,
           table_name: firstTableMapping.table_name,
-          column_mappings: firstTableMapping.column_mappings || []
+          column_mappings: firstTableMapping.column_mappings || [],
+          // Support both old single where_condition and new where_conditions array
+          where_conditions: firstTableMapping.where_conditions ||
+            (firstTableMapping.where_condition ? [firstTableMapping.where_condition] : [])
         };
       } else if (!workflowData.column_mappings) {
         // Neither structure has column_mappings - set empty array
@@ -1642,6 +1645,24 @@ const WorkflowDetailPage = () => {
                       </TableBody>
                     </Table>
                   </TableContainer>
+
+                  {/* WHERE Conditions Display */}
+                  {workflow.where_conditions && workflow.where_conditions.length > 0 && workflow.where_conditions.some(c => c.column) && (
+                    <Box sx={{ mt: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fff3e0' }}>
+                      <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                        WHERE Conditions ({workflow.where_conditions.filter(c => c.column).length})
+                      </Typography>
+                      {workflow.where_conditions.filter(c => c.column).map((condition, index) => (
+                        <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
+                          {index > 0 && <Chip label={condition.logic || 'AND'} size="small" sx={{ mr: 1, mb: 0.5 }} />}
+                          <strong>{condition.column}</strong> {condition.operator || '='} '<strong>{condition.value}</strong>'
+                        </Typography>
+                      ))}
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                        Only rows matching these conditions will be masked
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               )}
             </Box>

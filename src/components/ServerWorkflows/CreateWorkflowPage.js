@@ -34,6 +34,8 @@ import Grid from '@mui/material/Grid'
 import {
   ArrowBack as ArrowBackIcon,
   Preview as PreviewIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { serverConnectionsAPI, serverWorkflowsAPI, serverMaskingAPI } from '../../services/api';
@@ -86,7 +88,8 @@ const CreateWorkflowPage = () => {
     connection_id: '',
     schema_name: '',
     table_name: '',
-    column_mappings: []
+    column_mappings: [],
+    where_conditions: []  // Array of { column, operator, value, logic }
   });
 
   const [schemas, setSchemas] = useState([]);
@@ -249,9 +252,9 @@ const CreateWorkflowPage = () => {
       const workflowData = response.data?.data || response.data;
 
       // Handle both old and new payload structures
-      // New structure: { table_mappings: [{ table_name, schema_name, column_mappings }] }
+      // New structure: { table_mappings: [{ table_name, schema_name, column_mappings, where_conditions }] }
       // Old structure: { schema_name, table_name, column_mappings }
-      let schemaName, tableName, columnMappings;
+      let schemaName, tableName, columnMappings, whereConditions;
 
       if (workflowData.table_mappings && Array.isArray(workflowData.table_mappings) && workflowData.table_mappings.length > 0) {
         // New structure with table_mappings array
@@ -259,11 +262,16 @@ const CreateWorkflowPage = () => {
         schemaName = firstTableMapping.schema_name;
         tableName = firstTableMapping.table_name;
         columnMappings = firstTableMapping.column_mappings || [];
+        // Support both old single where_condition and new where_conditions array
+        whereConditions = firstTableMapping.where_conditions ||
+          (firstTableMapping.where_condition ? [firstTableMapping.where_condition] : []);
       } else {
         // Old structure with flat fields
         schemaName = workflowData.schema_name;
         tableName = workflowData.table_name;
         columnMappings = workflowData.column_mappings || [];
+        whereConditions = workflowData.where_conditions ||
+          (workflowData.where_condition ? [workflowData.where_condition] : []);
       }
 
       // Populate formData with existing workflow
@@ -276,7 +284,13 @@ const CreateWorkflowPage = () => {
         column_mappings: columnMappings.map(col => ({
           ...col,
           pii_attribute: col.pii_attribute || '' // Convert null/undefined to empty string for placeholder
-        }))
+        })),
+        where_conditions: Array.isArray(whereConditions) ? whereConditions.map(c => ({
+          column: c?.column || '',
+          operator: c?.operator || '=',
+          value: c?.value || '',
+          logic: c?.logic || 'AND'
+        })) : []
       });
 
       setSelectedSchema(schemaName);
@@ -483,7 +497,10 @@ const CreateWorkflowPage = () => {
       setLoading(true);
 
       // Transform payload to match API expectations
-      // API expects: { name, description, connection_id, table_mappings: [{ table_name, schema_name, column_mappings }] }
+      // API expects: { name, description, connection_id, table_mappings: [{ table_name, schema_name, column_mappings, where_conditions }] }
+      // Filter out incomplete conditions (must have column and value)
+      const validConditions = formData.where_conditions.filter(c => c.column && c.value);
+
       const transformedPayload = {
         name: formData.name,
         description: formData.description,
@@ -496,7 +513,13 @@ const CreateWorkflowPage = () => {
               column_name: col.column_name,
               is_pii: col.is_pii,
               pii_attribute: col.is_pii && col.pii_attribute ? col.pii_attribute : null
-            }))
+            })),
+            where_conditions: validConditions.length > 0 ? validConditions.map(c => ({
+              column: c.column,
+              operator: c.operator,
+              value: c.value,
+              logic: c.logic
+            })) : null
           }
         ]
       };
@@ -701,6 +724,143 @@ const CreateWorkflowPage = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+
+            {/* WHERE Conditions Section */}
+            <Box sx={{ mt: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fafafa' }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                    WHERE Conditions (Optional)
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Filter rows to mask based on conditions. Only rows matching these conditions will be processed.
+                  </Typography>
+                </Box>
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setFormData(prev => ({
+                    ...prev,
+                    where_conditions: [...prev.where_conditions, { column: '', operator: '=', value: '', logic: 'AND' }]
+                  }))}
+                >
+                  Add Condition
+                </Button>
+              </Box>
+
+              {formData.where_conditions.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', textAlign: 'center', py: 2 }}>
+                  No conditions added. Click "Add Condition" to filter rows.
+                </Typography>
+              ) : (
+                formData.where_conditions.map((condition, index) => (
+                  <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fff' }}>
+                    <Grid container spacing={2} alignItems="center">
+                      {index > 0 && (
+                        <Grid size={{ xs: 12, md: 1 }}>
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={condition.logic}
+                              onChange={(e) => {
+                                const newConditions = [...formData.where_conditions];
+                                newConditions[index].logic = e.target.value;
+                                setFormData(prev => ({ ...prev, where_conditions: newConditions }));
+                              }}
+                            >
+                              <MenuItem value="AND">AND</MenuItem>
+                              <MenuItem value="OR">OR</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                      )}
+                      <Grid size={{ xs: 12, md: index > 0 ? 3 : 4 }}>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>Column Name</InputLabel>
+                          <Select
+                            value={condition.column}
+                            onChange={(e) => {
+                              const newConditions = [...formData.where_conditions];
+                              newConditions[index].column = e.target.value;
+                              setFormData(prev => ({ ...prev, where_conditions: newConditions }));
+                            }}
+                            label="Column Name"
+                          >
+                            <MenuItem value="">Select Column</MenuItem>
+                            {columns.map((col) => (
+                              <MenuItem key={col.name} value={col.name}>
+                                {col.name}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 2 }}>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>Operator</InputLabel>
+                          <Select
+                            value={condition.operator}
+                            onChange={(e) => {
+                              const newConditions = [...formData.where_conditions];
+                              newConditions[index].operator = e.target.value;
+                              setFormData(prev => ({ ...prev, where_conditions: newConditions }));
+                            }}
+                            label="Operator"
+                            disabled={!condition.column}
+                          >
+                            <MenuItem value="=">=</MenuItem>
+                            <MenuItem value="!=">!=</MenuItem>
+                            <MenuItem value=">">&gt;</MenuItem>
+                            <MenuItem value="<">&lt;</MenuItem>
+                            <MenuItem value=">=">≥</MenuItem>
+                            <MenuItem value="<=">≤</MenuItem>
+                            <MenuItem value="LIKE">LIKE</MenuItem>
+                            <MenuItem value="IN">IN</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid size={{ xs: 12, md: index > 0 ? 4 : 5 }}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Value"
+                          value={condition.value}
+                          onChange={(e) => {
+                            const newConditions = [...formData.where_conditions];
+                            newConditions[index].value = e.target.value;
+                            setFormData(prev => ({ ...prev, where_conditions: newConditions }));
+                          }}
+                          disabled={!condition.column}
+                          placeholder={condition.operator === 'IN' ? "e.g., 'val1','val2'" : "Enter filter value"}
+                          helperText={condition.operator === 'LIKE' ? "Use % as wildcard" : condition.operator === 'IN' ? "Comma-separated values" : ""}
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 1 }}>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => {
+                            const newConditions = formData.where_conditions.filter((_, i) => i !== index);
+                            setFormData(prev => ({ ...prev, where_conditions: newConditions }));
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                ))
+              )}
+
+              {formData.where_conditions.length > 0 && formData.where_conditions.some(c => c.column && c.value) && (
+                <Typography variant="body2" sx={{ mt: 2, p: 1, backgroundColor: '#e3f2fd', borderRadius: 1 }}>
+                  <strong>Preview:</strong> WHERE {formData.where_conditions
+                    .filter(c => c.column && c.value)
+                    .map((c, i) => `${i > 0 ? ` ${c.logic} ` : ''}${c.column} ${c.operator} '${c.value}'`)
+                    .join('')}
+                </Typography>
+              )}
+            </Box>
           </Box>
         );
 
@@ -743,6 +903,22 @@ const CreateWorkflowPage = () => {
                   ))}
                 </Box>
               </Grid>
+              {formData.where_conditions.length > 0 && formData.where_conditions.some(c => c.column && c.value) && (
+                <Grid size={12}>
+                  <Typography variant="subtitle1">WHERE Conditions ({formData.where_conditions.filter(c => c.column && c.value).length})</Typography>
+                  <Box sx={{ mt: 1, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fff3e0' }}>
+                    {formData.where_conditions.filter(c => c.column && c.value).map((condition, index) => (
+                      <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
+                        {index > 0 && <Chip label={condition.logic} size="small" sx={{ mr: 1, mb: 0.5 }} />}
+                        <strong>{condition.column}</strong> {condition.operator} '<strong>{condition.value}</strong>'
+                      </Typography>
+                    ))}
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      Only rows matching these conditions will be masked
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
             </Grid>
           </Box>
         );

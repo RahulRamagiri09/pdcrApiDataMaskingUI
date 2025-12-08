@@ -1,8 +1,5 @@
 /**
  * Format duration in seconds to HH:MM:SS format
- * @param {number} seconds - Duration in seconds
- * @returns {string} Formatted duration string in HH:MM:SS format
- *
  * Examples:
  * - 50 seconds → "00:00:50"
  * - 70 seconds → "00:01:10"

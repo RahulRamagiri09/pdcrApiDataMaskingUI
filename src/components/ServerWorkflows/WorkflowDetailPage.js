@@ -1655,7 +1655,14 @@ const WorkflowDetailPage = () => {
                       {workflow.where_conditions.filter(c => c.column).map((condition, index) => (
                         <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
                           {index > 0 && <Chip label={condition.logic || 'AND'} size="small" sx={{ mr: 1, mb: 0.5 }} />}
-                          <strong>{condition.column}</strong> {condition.operator || '='} '<strong>{condition.value}</strong>'
+                          <strong>{condition.column}</strong>{' '}
+                          {condition.operator === 'IS_PHONE' ? (
+                            <Chip label="IS PHONE" size="small" color="info" />
+                          ) : condition.operator === 'IS_EMAIL' ? (
+                            <Chip label="IS EMAIL" size="small" color="info" />
+                          ) : (
+                            <>{condition.operator || '='} '<strong>{condition.value}</strong>'</>
+                          )}
                         </Typography>
                       ))}
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>

@@ -498,8 +498,11 @@ const CreateWorkflowPage = () => {
 
       // Transform payload to match API expectations
       // API expects: { name, description, connection_id, table_mappings: [{ table_name, schema_name, column_mappings, where_conditions }] }
-      // Filter out incomplete conditions (must have column and value)
-      const validConditions = formData.where_conditions.filter(c => c.column && c.value);
+      // Filter out incomplete conditions (must have column and value, except for pattern operators like IS_PHONE, IS_EMAIL)
+      const patternOperators = ['IS_PHONE', 'IS_EMAIL'];
+      const validConditions = formData.where_conditions.filter(c =>
+        c.column && (patternOperators.includes(c.operator) || c.value)
+      );
 
       const transformedPayload = {
         name: formData.name,
@@ -803,6 +806,10 @@ const CreateWorkflowPage = () => {
                             onChange={(e) => {
                               const newConditions = [...formData.where_conditions];
                               newConditions[index].operator = e.target.value;
+                              // Clear value for pattern operators that don't need input
+                              if (['IS_PHONE', 'IS_EMAIL'].includes(e.target.value)) {
+                                newConditions[index].value = '';
+                              }
                               setFormData(prev => ({ ...prev, where_conditions: newConditions }));
                             }}
                             label="Operator"
@@ -816,24 +823,32 @@ const CreateWorkflowPage = () => {
                             <MenuItem value="<=">≤</MenuItem>
                             <MenuItem value="LIKE">LIKE</MenuItem>
                             <MenuItem value="IN">IN</MenuItem>
+                            <MenuItem value="IS_PHONE" sx={{ borderTop: '1px solid #e0e0e0', mt: 1 }}>IS PHONE</MenuItem>
+                            <MenuItem value="IS_EMAIL">IS EMAIL</MenuItem>
                           </Select>
                         </FormControl>
                       </Grid>
                       <Grid size={{ xs: 12, md: index > 0 ? 4 : 5 }}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Value"
-                          value={condition.value}
-                          onChange={(e) => {
-                            const newConditions = [...formData.where_conditions];
-                            newConditions[index].value = e.target.value;
-                            setFormData(prev => ({ ...prev, where_conditions: newConditions }));
-                          }}
-                          disabled={!condition.column}
-                          placeholder={condition.operator === 'IN' ? "e.g., 'val1','val2'" : "Enter filter value"}
-                          helperText={condition.operator === 'LIKE' ? "Use % as wildcard" : condition.operator === 'IN' ? "Comma-separated values" : ""}
-                        />
+                        {['IS_PHONE', 'IS_EMAIL'].includes(condition.operator) ? (
+                          <Typography variant="body2" sx={{ py: 1, px: 2, backgroundColor: '#e8f5e9', borderRadius: 1, color: '#2e7d32' }}>
+                            {condition.operator === 'IS_PHONE' ? 'Matches phone number pattern (digits, +, -, spaces)' : 'Matches email pattern (contains @)'}
+                          </Typography>
+                        ) : (
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Value"
+                            value={condition.value}
+                            onChange={(e) => {
+                              const newConditions = [...formData.where_conditions];
+                              newConditions[index].value = e.target.value;
+                              setFormData(prev => ({ ...prev, where_conditions: newConditions }));
+                            }}
+                            disabled={!condition.column}
+                            placeholder={condition.operator === 'IN' ? "e.g., 'val1','val2'" : "Enter filter value"}
+                            helperText={condition.operator === 'LIKE' ? "Use % as wildcard" : condition.operator === 'IN' ? "Comma-separated values" : ""}
+                          />
+                        )}
                       </Grid>
                       <Grid size={{ xs: 12, md: 1 }}>
                         <IconButton
@@ -852,11 +867,16 @@ const CreateWorkflowPage = () => {
                 ))
               )}
 
-              {formData.where_conditions.length > 0 && formData.where_conditions.some(c => c.column && c.value) && (
+              {formData.where_conditions.length > 0 && formData.where_conditions.some(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)) && (
                 <Typography variant="body2" sx={{ mt: 2, p: 1, backgroundColor: '#e3f2fd', borderRadius: 1 }}>
                   <strong>Preview:</strong> WHERE {formData.where_conditions
-                    .filter(c => c.column && c.value)
-                    .map((c, i) => `${i > 0 ? ` ${c.logic} ` : ''}${c.column} ${c.operator} '${c.value}'`)
+                    .filter(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value))
+                    .map((c, i) => {
+                      const prefix = i > 0 ? ` ${c.logic} ` : '';
+                      if (c.operator === 'IS_PHONE') return `${prefix}${c.column} matches phone pattern`;
+                      if (c.operator === 'IS_EMAIL') return `${prefix}${c.column} matches email pattern`;
+                      return `${prefix}${c.column} ${c.operator} '${c.value}'`;
+                    })
                     .join('')}
                 </Typography>
               )}
@@ -903,14 +923,21 @@ const CreateWorkflowPage = () => {
                   ))}
                 </Box>
               </Grid>
-              {formData.where_conditions.length > 0 && formData.where_conditions.some(c => c.column && c.value) && (
+              {formData.where_conditions.length > 0 && formData.where_conditions.some(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)) && (
                 <Grid size={12}>
-                  <Typography variant="subtitle1">WHERE Conditions ({formData.where_conditions.filter(c => c.column && c.value).length})</Typography>
+                  <Typography variant="subtitle1">WHERE Conditions ({formData.where_conditions.filter(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)).length})</Typography>
                   <Box sx={{ mt: 1, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fff3e0' }}>
-                    {formData.where_conditions.filter(c => c.column && c.value).map((condition, index) => (
+                    {formData.where_conditions.filter(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)).map((condition, index) => (
                       <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
                         {index > 0 && <Chip label={condition.logic} size="small" sx={{ mr: 1, mb: 0.5 }} />}
-                        <strong>{condition.column}</strong> {condition.operator} '<strong>{condition.value}</strong>'
+                        <strong>{condition.column}</strong>{' '}
+                        {condition.operator === 'IS_PHONE' ? (
+                          <Chip label="IS PHONE" size="small" color="info" />
+                        ) : condition.operator === 'IS_EMAIL' ? (
+                          <Chip label="IS EMAIL" size="small" color="info" />
+                        ) : (
+                          <>{condition.operator} '<strong>{condition.value}</strong>'</>
+                        )}
                       </Typography>
                     ))}
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>

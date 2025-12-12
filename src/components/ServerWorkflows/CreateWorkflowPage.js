@@ -29,11 +29,13 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import Grid from '@mui/material/Grid'
 import {
   ArrowBack as ArrowBackIcon,
-  Preview as PreviewIcon,
+  // Preview as PreviewIcon,  // Commented out - Preview functionality replaced by row WHERE condition
   Add as AddIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
@@ -81,6 +83,7 @@ const CreateWorkflowPage = () => {
     boolean: []
   });
   const [previewDialog, setPreviewDialog] = useState({ open: false, attribute: '', samples: [] });
+  const [whereMode, setWhereMode] = useState('none'); // 'none' | 'global' | 'row'
 
   const [formData, setFormData] = useState({
     name: '',
@@ -254,7 +257,7 @@ const CreateWorkflowPage = () => {
       // Handle both old and new payload structures
       // New structure: { table_mappings: [{ table_name, schema_name, column_mappings, where_conditions }] }
       // Old structure: { schema_name, table_name, column_mappings }
-      let schemaName, tableName, columnMappings, whereConditions;
+      let schemaName, tableName, columnMappings, whereConditions, savedWhereMode;
 
       if (workflowData.table_mappings && Array.isArray(workflowData.table_mappings) && workflowData.table_mappings.length > 0) {
         // New structure with table_mappings array
@@ -262,6 +265,7 @@ const CreateWorkflowPage = () => {
         schemaName = firstTableMapping.schema_name;
         tableName = firstTableMapping.table_name;
         columnMappings = firstTableMapping.column_mappings || [];
+        savedWhereMode = firstTableMapping.where_mode;  // Read where_mode flag
         // Support both old single where_condition and new where_conditions array
         whereConditions = firstTableMapping.where_conditions ||
           (firstTableMapping.where_condition ? [firstTableMapping.where_condition] : []);
@@ -283,7 +287,11 @@ const CreateWorkflowPage = () => {
         table_name: tableName,
         column_mappings: columnMappings.map(col => ({
           ...col,
-          pii_attribute: col.pii_attribute || '' // Convert null/undefined to empty string for placeholder
+          pii_attribute: col.pii_attribute || '', // Convert null/undefined to empty string for placeholder
+          // Support both new where_row_conditions (array) and old where_condition (object) for backwards compatibility
+          where_condition: (Array.isArray(col.where_row_conditions) && col.where_row_conditions.length > 0
+            ? col.where_row_conditions[0]
+            : col.where_condition) || { column: '', operator: '=', value: '' }
         })),
         where_conditions: Array.isArray(whereConditions) ? whereConditions.map(c => ({
           column: c?.column || '',
@@ -292,6 +300,34 @@ const CreateWorkflowPage = () => {
           logic: c?.logic || 'AND'
         })) : []
       });
+
+      // Use saved where_mode if available, otherwise detect from data
+      if (savedWhereMode) {
+        setWhereMode(savedWhereMode);
+      } else {
+        // Fallback: Detect whereMode from loaded data
+        const hasGlobalWhere = whereConditions && whereConditions.length > 0;
+        const hasRowWhere = columnMappings.some(col => {
+          // Handle where_row_conditions as array (new format)
+          if (Array.isArray(col.where_row_conditions) && col.where_row_conditions.length > 0) {
+            const cond = col.where_row_conditions[0];
+            return cond.column && (cond.value || ['IS_PHONE', 'IS_EMAIL'].includes(cond.operator));
+          }
+          // Handle where_condition as object (old format)
+          if (col.where_condition && col.where_condition.column) {
+            return col.where_condition.value || ['IS_PHONE', 'IS_EMAIL'].includes(col.where_condition.operator);
+          }
+          return false;
+        });
+
+        if (hasGlobalWhere) {
+          setWhereMode('global');
+        } else if (hasRowWhere) {
+          setWhereMode('row');
+        } else {
+          setWhereMode('none');
+        }
+      }
 
       setSelectedSchema(schemaName);
 
@@ -444,7 +480,8 @@ const CreateWorkflowPage = () => {
         column_name: col.name,
         data_type: col.data_type,
         is_pii: false,
-        pii_attribute: ''
+        pii_attribute: '',
+        where_condition: { column: '', operator: '=', value: '' }  // Row-level WHERE condition
       }));
 
       setFormData(prev => ({
@@ -465,9 +502,10 @@ const CreateWorkflowPage = () => {
       column_mappings: prev.column_mappings.map((mapping, i) => {
         if (i === index) {
           const updatedMapping = { ...mapping, [field]: value };
-          // When unchecking "Is PII", also clear the PII attribute
+          // When unchecking "Is PII", also clear the PII attribute and row WHERE condition
           if (field === 'is_pii' && value === false) {
             updatedMapping.pii_attribute = '';
+            updatedMapping.where_condition = { column: '', operator: '=', value: '' };
           }
           return updatedMapping;
         }
@@ -476,21 +514,22 @@ const CreateWorkflowPage = () => {
     }));
   };
 
-  const handlePreviewSample = async (attribute) => {
-    try {
-      const response = await serverMaskingAPI.generateSampleData(attribute, 5);
-
-      // Handle different response structures safely
-      const samples = response.data?.data?.samples || response.data?.samples || [];
-      setPreviewDialog({
-        open: true,
-        attribute,
-        samples: Array.isArray(samples) ? samples : []
-      });
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+  // Preview functionality commented out - replaced by row WHERE condition
+  // const handlePreviewSample = async (attribute) => {
+  //   try {
+  //     const response = await serverMaskingAPI.generateSampleData(attribute, 5);
+  //
+  //     // Handle different response structures safely
+  //     const samples = response.data?.data?.samples || response.data?.samples || [];
+  //     setPreviewDialog({
+  //       open: true,
+  //       attribute,
+  //       samples: Array.isArray(samples) ? samples : []
+  //     });
+  //   } catch (err) {
+  //     setError(err.message);
+  //   }
+  // };
 
   const handleCreateWorkflow = async () => {
     try {
@@ -512,12 +551,32 @@ const CreateWorkflowPage = () => {
           {
             table_name: formData.table_name,
             schema_name: formData.schema_name,
-            column_mappings: formData.column_mappings.map(col => ({
-              column_name: col.column_name,
-              is_pii: col.is_pii,
-              pii_attribute: col.is_pii && col.pii_attribute ? col.pii_attribute : null
-            })),
-            where_conditions: validConditions.length > 0 ? validConditions.map(c => ({
+            where_mode: whereMode,  // 'none' | 'global' | 'row'
+            column_mappings: formData.column_mappings.map(col => {
+              const mapping = {
+                column_name: col.column_name,
+                is_pii: col.is_pii,
+                pii_attribute: col.is_pii && col.pii_attribute ? col.pii_attribute : null
+              };
+              // Add row-level where_row_conditions if in row mode and PII column has condition
+              if (whereMode === 'row' && col.is_pii) {
+                const hasPatternOp = patternOperators.includes(col.where_condition?.operator);
+                const hasValue = col.where_condition?.value;
+                const hasColumn = col.where_condition?.column;
+                if (hasColumn && (hasPatternOp || hasValue)) {
+                  mapping.where_row_conditions = [
+                    {
+                      column: col.where_condition.column,  // Column selected by user
+                      operator: col.where_condition.operator,
+                      value: col.where_condition.value || ''
+                    }
+                  ];
+                }
+              }
+              return mapping;
+            }),
+            // Global where_conditions only when in global mode
+            where_conditions: whereMode === 'global' && validConditions.length > 0 ? validConditions.map(c => ({
               column: c.column,
               operator: c.operator,
               value: c.value,
@@ -656,87 +715,74 @@ const CreateWorkflowPage = () => {
       case 2:
         return (
           <Box>
-            <Typography variant="h6" gutterBottom>
-              Configure Column Mappings for {formData.table_name}
-            </Typography>
-            <TableContainer component={Paper} sx={{
-                overflow: 'auto',
-                '&::-webkit-scrollbar': { display: 'none' },
-                msOverflowStyle: 'none',
-                scrollbarWidth: 'none',
-              }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1 }}>Column Name</TableCell>
-                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1 }}>Data Type</TableCell>
-                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1 }}>Is PII</TableCell>
-                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1 }}>PII Attribute</TableCell>
-                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1 }}>Preview</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {formData.column_mappings.map((mapping, index) => {
-                    const columnInfo = columns.find(col => col.name === mapping.column_name);
-                    return (
-                      <TableRow key={index} sx={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
-                        <TableCell sx={{ py: 0.5 }}><strong>{mapping.column_name}</strong></TableCell>
-                        <TableCell sx={{ py: 0.5 }}>
-                          <Chip
-                            label={columnInfo?.data_type || mapping.data_type || 'Unknown'}
-                            size="small"
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell sx={{ py: 0.5 }}>
-                          <Checkbox
-                            checked={mapping.is_pii}
-                            onChange={(e) => handleColumnMappingChange(index, 'is_pii', e.target.checked)}
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell sx={{ py: 0.5 }}>
-                          <FormControl size="small" sx={{ minWidth: 150 }} disabled={!mapping.is_pii}>
-                            <Select
-                              value={mapping.pii_attribute}
-                              onChange={(e) => handleColumnMappingChange(index, 'pii_attribute', e.target.value)}
-                              displayEmpty
-                            >
-                              <MenuItem value="">Select attribute</MenuItem>
-                              {getFilteredPiiAttributes(mapping.column_name).map((attr) => (
-                                <MenuItem key={attr} value={attr}>
-                                  {attr.replace(/_/g, ' ')}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
-                        </TableCell>
-                        <TableCell sx={{ py: 0.5 }}>
-                          {mapping.is_pii && mapping.pii_attribute && (
-                            <IconButton
-                              size="small"
-                              onClick={() => handlePreviewSample(mapping.pii_attribute)}
-                            >
-                              <PreviewIcon />
-                            </IconButton>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            {/* WHERE Condition Mode Toggle */}
+            <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fafafa' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                  WHERE Condition Mode
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {whereMode === 'none' && ' -  All rows will be processed without filtering.'}
+                  {whereMode === 'global' && ' -  Apply common WHERE conditions to filter all rows.'}
+                  {whereMode === 'row' && ' -  Apply individual WHERE conditions per PII column.'}
+                </Typography>
+              </Box>
+              <ToggleButtonGroup
+                value={whereMode}
+                exclusive
+                onChange={(e, newMode) => {
+                  if (newMode !== null) {
+                    // Clear conditions when switching
+                    if (newMode !== 'global') {
+                      setFormData(prev => ({ ...prev, where_conditions: [] }));
+                    }
+                    if (newMode !== 'row') {
+                      setFormData(prev => ({
+                        ...prev,
+                        column_mappings: prev.column_mappings.map(m => ({
+                          ...m,
+                          where_condition: { column: '', operator: '=', value: '' }
+                        }))
+                      }));
+                    }
+                    setWhereMode(newMode);
+                  }
+                }}
+                size="small"
+                sx={{
+                  mt: 1,
+                  '& .MuiToggleButton-root': {
+                    backgroundColor: '#e0e0e0',
+                    color: '#333',
+                    '&.Mui-selected': {
+                      backgroundColor: '#0b2677',
+                      color: '#ffffff',
+                      '&:hover': {
+                        backgroundColor: '#0a2060',
+                      }
+                    },
+                    '&:hover': {
+                      backgroundColor: '#d0d0d0',
+                    }
+                  }
+                }}
+              >
+                <ToggleButton value="none" sx={{ px: 2 }}>Default</ToggleButton>
+                <ToggleButton value="global" sx={{ px: 2 }}>Global WHERE</ToggleButton>
+                <ToggleButton value="row" sx={{ px: 2 }}>Row Level WHERE</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
 
-            {/* WHERE Conditions Section */}
-            <Box sx={{ mt: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fafafa' }}>
+            {/* Global WHERE Conditions Section - Only shown when global mode is active */}
+            {whereMode === 'global' && (
+            <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fafafa' }}>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                    WHERE Conditions (Optional)
+                    Global WHERE Conditions
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Filter rows to mask based on conditions. Only rows matching these conditions will be processed.
+                    - Filter rows to mask based on conditions. Only rows matching these conditions will be processed.
                   </Typography>
                 </Box>
                 <Button
@@ -881,6 +927,166 @@ const CreateWorkflowPage = () => {
                 </Typography>
               )}
             </Box>
+            )}
+
+            {/* Column Mappings Section */}
+            <Typography variant="h6" gutterBottom>
+              Configure Column Mappings for {formData.table_name}
+            </Typography>
+            <TableContainer component={Paper} sx={{
+                maxHeight: 400,
+                overflow: 'auto',
+              }}>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1, position: 'sticky', top: 0, zIndex: 1 }}>Column Name</TableCell>
+                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1, position: 'sticky', top: 0, zIndex: 1 }}>Data Type</TableCell>
+                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1, position: 'sticky', top: 0, zIndex: 1 }}>Is PII</TableCell>
+                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1, position: 'sticky', top: 0, zIndex: 1 }}>PII Attribute</TableCell>
+                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1, position: 'sticky', top: 0, zIndex: 1 }}>WHERE Condition</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {formData.column_mappings.map((mapping, index) => {
+                    const columnInfo = columns.find(col => col.name === mapping.column_name);
+                    return (
+                      <TableRow key={index} sx={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
+                        <TableCell sx={{ py: 0.5 }}><strong>{mapping.column_name}</strong></TableCell>
+                        <TableCell sx={{ py: 0.5 }}>
+                          <Chip
+                            label={columnInfo?.data_type || mapping.data_type || 'Unknown'}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </TableCell>
+                        <TableCell sx={{ py: 0.5 }}>
+                          <Checkbox
+                            checked={mapping.is_pii}
+                            onChange={(e) => handleColumnMappingChange(index, 'is_pii', e.target.checked)}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell sx={{ py: 0.5, px: 1 }}>
+                          <FormControl size="small" sx={{ width: { xs: 140, sm: 160, md: 180, lg: 200 }, maxWidth: { xs: 140, sm: 160, md: 180, lg: 200 } }} disabled={!mapping.is_pii}>
+                            <Select
+                              value={mapping.pii_attribute}
+                              onChange={(e) => handleColumnMappingChange(index, 'pii_attribute', e.target.value)}
+                              displayEmpty
+                              sx={{
+                                '& .MuiSelect-select': {
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }
+                              }}
+                            >
+                              <MenuItem value="">Select attribute</MenuItem>
+                              {getFilteredPiiAttributes(mapping.column_name).map((attr) => (
+                                <MenuItem key={attr} value={attr}>
+                                  {attr.replace(/_/g, ' ')}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </TableCell>
+                        <TableCell sx={{ py: 0.5, px: 1 }}>
+                          {/* Preview functionality commented out - replaced with row WHERE condition
+                          {mapping.is_pii && mapping.pii_attribute && (
+                            <IconButton
+                              size="small"
+                              onClick={() => handlePreviewSample(mapping.pii_attribute)}
+                            >
+                              <PreviewIcon />
+                            </IconButton>
+                          )}
+                          */}
+                          {whereMode === 'row' && mapping.is_pii ? (
+                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'nowrap' }}>
+                              {/* Column dropdown */}
+                              <FormControl size="small" sx={{ width: { xs: 120, sm: 140, md: 160, lg: 180 }, maxWidth: { xs: 120, sm: 140, md: 160, lg: 180 } }}>
+                                <Select
+                                  value={mapping.where_condition?.column || ''}
+                                  onChange={(e) => handleColumnMappingChange(index, 'where_condition', {
+                                    ...mapping.where_condition,
+                                    column: e.target.value
+                                  })}
+                                  displayEmpty
+                                  sx={{
+                                    '& .MuiSelect-select': {
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                    }
+                                  }}
+                                >
+                                  <MenuItem value="">Select Column</MenuItem>
+                                  {columns.map((col) => (
+                                    <MenuItem key={col.name} value={col.name}>
+                                      {col.name}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                              {/* Operator dropdown */}
+                              <FormControl size="small" sx={{ width: { xs: 80, sm: 90, md: 100, lg: 110 }, maxWidth: { xs: 80, sm: 90, md: 100, lg: 110 } }}>
+                                <Select
+                                  value={mapping.where_condition?.operator || '='}
+                                  onChange={(e) => handleColumnMappingChange(index, 'where_condition', {
+                                    ...mapping.where_condition,
+                                    operator: e.target.value,
+                                    value: ['IS_PHONE', 'IS_EMAIL'].includes(e.target.value) ? '' : (mapping.where_condition?.value || '')
+                                  })}
+                                  disabled={!mapping.where_condition?.column}
+                                  sx={{
+                                    '& .MuiSelect-select': {
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                    }
+                                  }}
+                                >
+                                  <MenuItem value="=">=</MenuItem>
+                                  <MenuItem value="!=">!=</MenuItem>
+                                  <MenuItem value=">">&gt;</MenuItem>
+                                  <MenuItem value="<">&lt;</MenuItem>
+                                  <MenuItem value=">=">≥</MenuItem>
+                                  <MenuItem value="<=">≤</MenuItem>
+                                  <MenuItem value="LIKE">LIKE</MenuItem>
+                                  <MenuItem value="IN">IN</MenuItem>
+                                  <MenuItem value="IS_PHONE" sx={{ borderTop: '1px solid #e0e0e0', mt: 1 }}>IS PHONE</MenuItem>
+                                  <MenuItem value="IS_EMAIL">IS EMAIL</MenuItem>
+                                </Select>
+                              </FormControl>
+                              {/* Value field */}
+                              {!['IS_PHONE', 'IS_EMAIL'].includes(mapping.where_condition?.operator) ? (
+                                <TextField
+                                  size="small"
+                                  sx={{ width: { xs: 100, sm: 120, md: 140, lg: 160 } }}
+                                  placeholder="Value"
+                                  value={mapping.where_condition?.value || ''}
+                                  onChange={(e) => handleColumnMappingChange(index, 'where_condition', {
+                                    ...mapping.where_condition,
+                                    value: e.target.value
+                                  })}
+                                  disabled={!mapping.where_condition?.column}
+                                />
+                              ) : (
+                                <Typography variant="caption" sx={{ color: '#2e7d32', fontStyle: 'italic' }}>
+                                  Pattern match
+                                </Typography>
+                              )}
+                            </Box>
+                          ) : (
+                            <Typography variant="body2" color="text.disabled">-</Typography>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Box>
         );
 
@@ -923,9 +1129,10 @@ const CreateWorkflowPage = () => {
                   ))}
                 </Box>
               </Grid>
-              {formData.where_conditions.length > 0 && formData.where_conditions.some(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)) && (
+              {/* Global WHERE Conditions - shown when in global mode */}
+              {whereMode === 'global' && formData.where_conditions.length > 0 && formData.where_conditions.some(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)) && (
                 <Grid size={12}>
-                  <Typography variant="subtitle1">WHERE Conditions ({formData.where_conditions.filter(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)).length})</Typography>
+                  <Typography variant="subtitle1">Global WHERE Conditions ({formData.where_conditions.filter(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)).length})</Typography>
                   <Box sx={{ mt: 1, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fff3e0' }}>
                     {formData.where_conditions.filter(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)).map((condition, index) => (
                       <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
@@ -942,6 +1149,38 @@ const CreateWorkflowPage = () => {
                     ))}
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                       Only rows matching these conditions will be masked
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
+              {/* Row-Level WHERE Conditions - shown when in row mode */}
+              {whereMode === 'row' && piiColumns.some(col => col.where_condition?.column && (col.where_condition?.value || ['IS_PHONE', 'IS_EMAIL'].includes(col.where_condition?.operator))) && (
+                <Grid size={12}>
+                  <Typography variant="subtitle1">Row-Level WHERE Conditions</Typography>
+                  <Box sx={{ mt: 1, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#e8f5e9' }}>
+                    {piiColumns.filter(col => col.where_condition?.column && (col.where_condition?.value || ['IS_PHONE', 'IS_EMAIL'].includes(col.where_condition?.operator))).map((col, index) => (
+                      <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
+                        <strong>{col.column_name}</strong>: WHERE <strong>{col.where_condition?.column}</strong>{' '}
+                        {['IS_PHONE', 'IS_EMAIL'].includes(col.where_condition?.operator) ? (
+                          <Chip label={col.where_condition.operator === 'IS_PHONE' ? 'IS PHONE' : 'IS EMAIL'} size="small" color="info" />
+                        ) : (
+                          <>{col.where_condition?.operator || '='} '<strong>{col.where_condition?.value}</strong>'</>
+                        )}
+                      </Typography>
+                    ))}
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      Each PII column has its own filtering condition
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
+              {/* No WHERE Conditions message */}
+              {whereMode === 'none' && (
+                <Grid size={12}>
+                  <Typography variant="subtitle1">WHERE Conditions</Typography>
+                  <Box sx={{ mt: 1, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#f5f5f5' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      No WHERE conditions - all rows will be processed
                     </Typography>
                   </Box>
                 </Grid>

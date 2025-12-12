@@ -319,6 +319,7 @@ const WorkflowDetailPage = () => {
 
       // Execution queued - no automatic polling, manual refresh only
       setError(null);
+      setExecuting(false);
     } catch (err) {
       setError(err.message || 'Failed to start workflow execution');
       setExecuting(false);
@@ -1482,9 +1483,9 @@ const WorkflowDetailPage = () => {
                             value={progressPercentage}
                             sx={{ height: 6, borderRadius: 1 }}
                           />
-                          {execution.last_completed_batch !== undefined && execution.last_completed_batch !== null && (
+                          {execution.total_batches > 0 && (
                             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                              Batch {execution.last_completed_batch}
+                              Batch {execution.last_completed_batch || 0}/{execution.total_batches}
                             </Typography>
                           )}
                         </Box>
@@ -1608,17 +1609,16 @@ const WorkflowDetailPage = () => {
                     />
                   </Box>
                   <TableContainer component={Paper} sx={{
+                      maxHeight: 400,
                       overflow: 'auto',
-                      '&::-webkit-scrollbar': { display: 'none' },
-                      msOverflowStyle: 'none',
-                      scrollbarWidth: 'none',
                     }}>
-                    <Table size="small">
+                    <Table size="small" stickyHeader>
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff' }}>Column Name</TableCell>
-                          <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff' }}>PII</TableCell>
-                          <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff' }}>PII Attribute</TableCell>
+                          <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', position: 'sticky', top: 0, zIndex: 1 }}>Column Name</TableCell>
+                          <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', position: 'sticky', top: 0, zIndex: 1 }}>PII</TableCell>
+                          <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', position: 'sticky', top: 0, zIndex: 1 }}>PII Attribute</TableCell>
+                          <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', position: 'sticky', top: 0, zIndex: 1 }}>WHERE Condition</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -1640,17 +1640,51 @@ const WorkflowDetailPage = () => {
                             <TableCell>
                               {col.pii_attribute || '-'}
                             </TableCell>
+                            <TableCell>
+                              {col.is_pii && col.where_row_conditions && col.where_row_conditions.length > 0 ? (
+                                col.where_row_conditions.map((cond, idx) => (
+                                  <Typography key={idx} variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                    <strong>{cond.column}</strong>{' '}
+                                    {cond.operator === 'IS_PHONE' ? (
+                                      <Chip label="IS PHONE" size="small" color="info" sx={{ height: 20 }} />
+                                    ) : cond.operator === 'IS_EMAIL' ? (
+                                      <Chip label="IS EMAIL" size="small" color="info" sx={{ height: 20 }} />
+                                    ) : (
+                                      <>{cond.operator} '{cond.value}'</>
+                                    )}
+                                  </Typography>
+                                ))
+                              ) : '-'}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
                   </TableContainer>
 
-                  {/* WHERE Conditions Display */}
-                  {workflow.where_conditions && workflow.where_conditions.length > 0 && workflow.where_conditions.some(c => c.column) && (
-                    <Box sx={{ mt: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fff3e0' }}>
+                  {/* WHERE Mode Indicator - detect from data if where_mode not set */}
+                  {(() => {
+                    // Detect mode from data if where_mode not explicitly set
+                    const hasGlobalWhere = workflow.where_conditions && workflow.where_conditions.length > 0 && workflow.where_conditions.some(c => c.column);
+                    const hasRowWhere = workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0);
+                    const detectedMode = workflow.where_mode || (hasGlobalWhere ? 'global' : hasRowWhere ? 'row' : 'none');
+
+                    return (
+                      <Box sx={{ mt: 3, mb: 2 }}>
+                        <Chip
+                          label={`WHERE Mode: ${detectedMode === 'global' ? 'Global' : detectedMode === 'row' ? 'Row Level' : 'Default (No Filter)'}`}
+                          size="small"
+                          sx={{ backgroundColor: '#0b2677', color: '#ffffff' }}
+                        />
+                      </Box>
+                    );
+                  })()}
+
+                  {/* Global WHERE Conditions - show if where_mode is global OR (where_mode not set AND has global conditions) */}
+                  {((workflow.where_mode === 'global') || (!workflow.where_mode && workflow.where_conditions && workflow.where_conditions.length > 0 && workflow.where_conditions.some(c => c.column))) && (
+                    <Box sx={{ mt: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fff3e0' }}>
                       <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                        WHERE Conditions ({workflow.where_conditions.filter(c => c.column).length})
+                        Global WHERE Conditions ({workflow.where_conditions.filter(c => c.column).length})
                       </Typography>
                       {workflow.where_conditions.filter(c => c.column).map((condition, index) => (
                         <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
@@ -1667,6 +1701,48 @@ const WorkflowDetailPage = () => {
                       ))}
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                         Only rows matching these conditions will be masked
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Row-Level WHERE Conditions Summary - show if where_mode is row OR (where_mode not set AND has row conditions) */}
+                  {((workflow.where_mode === 'row') || (!workflow.where_mode && !workflow.where_conditions?.length && workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0))) && workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0) && (
+                    <Box sx={{ mt: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#e8f5e9' }}>
+                      <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                        Row-Level WHERE Conditions
+                      </Typography>
+                      {workflow.column_mappings
+                        .filter(col => col.is_pii && col.where_row_conditions && col.where_row_conditions.length > 0)
+                        .map((col, index) => (
+                          <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
+                            <strong>{col.column_name}</strong>:{' '}
+                            {col.where_row_conditions.map((cond, idx) => (
+                              <span key={idx}>
+                                WHERE <strong>{cond.column}</strong>{' '}
+                                {cond.operator === 'IS_PHONE' ? (
+                                  <Chip label="IS PHONE" size="small" color="info" />
+                                ) : cond.operator === 'IS_EMAIL' ? (
+                                  <Chip label="IS EMAIL" size="small" color="info" />
+                                ) : (
+                                  <>{cond.operator} '<strong>{cond.value}</strong>'</>
+                                )}
+                              </span>
+                            ))}
+                          </Typography>
+                        ))}
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                        Each PII column has its own filtering condition
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Default Mode - No WHERE */}
+                  {(workflow.where_mode === 'none' || !workflow.where_mode) &&
+                   (!workflow.where_conditions || workflow.where_conditions.length === 0) &&
+                   !workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0) && (
+                    <Box sx={{ mt: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#f5f5f5' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No WHERE conditions - all rows will be processed
                       </Typography>
                     </Box>
                   )}

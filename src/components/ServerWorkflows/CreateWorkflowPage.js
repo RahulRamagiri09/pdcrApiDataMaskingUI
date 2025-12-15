@@ -945,7 +945,7 @@ const CreateWorkflowPage = () => {
                     <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1, position: 'sticky', top: 0, zIndex: 1 }}>Data Type</TableCell>
                     <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1, position: 'sticky', top: 0, zIndex: 1 }}>Is PII</TableCell>
                     <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1, position: 'sticky', top: 0, zIndex: 1 }}>PII Attribute</TableCell>
-                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1, position: 'sticky', top: 0, zIndex: 1 }}>WHERE Condition</TableCell>
+                    <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', fontWeight: 'bold', py: 1, position: 'sticky', top: 0, zIndex: 1 }}>Filter Condition</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1134,7 +1134,7 @@ const CreateWorkflowPage = () => {
               {whereMode === 'global' && formData.where_conditions.length > 0 && formData.where_conditions.some(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)) && (
                 <Grid size={12}>
                   <Typography variant="subtitle1">Global Filter Conditions ({formData.where_conditions.filter(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)).length})</Typography>
-                  <Box sx={{ mt: 1, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fff3e0' }}>
+                  <Box sx={{ mt: 1, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#e3f2fd' }}>
                     {formData.where_conditions.filter(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)).map((condition, index) => (
                       <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
                         {index > 0 && <Chip label={condition.logic} size="small" sx={{ mr: 1, mb: 0.5 }} />}
@@ -1157,8 +1157,8 @@ const CreateWorkflowPage = () => {
               {/* Row-Level WHERE Conditions - shown when in row mode */}
               {whereMode === 'row' && piiColumns.some(col => col.where_condition?.column && (col.where_condition?.value || ['IS_PHONE', 'IS_EMAIL'].includes(col.where_condition?.operator))) && (
                 <Grid size={12}>
-                  <Typography variant="subtitle1">Row-Level WHERE Conditions</Typography>
-                  <Box sx={{ mt: 1, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#e8f5e9' }}>
+                  <Typography variant="subtitle1">Row Level Filter Conditions</Typography>
+                  <Box sx={{ mt: 1, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#e3f2fd' }}>
                     {piiColumns.filter(col => col.where_condition?.column && (col.where_condition?.value || ['IS_PHONE', 'IS_EMAIL'].includes(col.where_condition?.operator))).map((col, index) => (
                       <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
                         <strong>{col.column_name}</strong>: WHERE <strong>{col.where_condition?.column}</strong>{' '}
@@ -1175,13 +1175,13 @@ const CreateWorkflowPage = () => {
                   </Box>
                 </Grid>
               )}
-              {/* No WHERE Conditions message */}
+              {/* No Filter Conditions message */}
               {whereMode === 'none' && (
                 <Grid size={12}>
-                  <Typography variant="subtitle1">WHERE Conditions</Typography>
-                  <Box sx={{ mt: 1, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#f5f5f5' }}>
+                  <Typography variant="subtitle1">Filter Conditions</Typography>
+                  <Box sx={{ mt: 1, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#e3f2fd' }}>
                     <Typography variant="body2" color="text.secondary">
-                      No WHERE conditions - all rows will be processed
+                      No filter conditions - all rows will be processed
                     </Typography>
                   </Box>
                 </Grid>

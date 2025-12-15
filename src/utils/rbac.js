@@ -35,9 +35,8 @@ const PERMISSIONS = {
     'workflow.view',
     // Execution permissions (view only)
     'execution.view',
-    // Preview/Masking permissions
+    // Preview/Masking permissions (no masking.view - admin only)
     'preview.view',
-    'masking.view',
     'columnMapping.view',
     'constraint.view',
   ],
@@ -54,9 +53,8 @@ const PERMISSIONS = {
     'execution.stop',
     'execution.pause',
     'execution.resume',
-    // Preview/Masking permissions
+    // Preview/Masking permissions (no masking.view - admin only)
     'preview.view',
-    'masking.view',
     'columnMapping.view',
     'constraint.view',
   ],
@@ -68,9 +66,8 @@ const PERMISSIONS = {
     'workflow.view',
     // Execution permissions (view only)
     'execution.view',
-    // Preview/Masking permissions
+    // Preview/Masking permissions (no masking.view - admin only)
     'preview.view',
-    'masking.view',
     'columnMapping.view',
     'constraint.view',
   ],

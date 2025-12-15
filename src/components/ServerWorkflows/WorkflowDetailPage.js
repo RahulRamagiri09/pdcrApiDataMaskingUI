@@ -54,6 +54,7 @@ import {
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { serverWorkflowsAPI, serverMaskingAPI, serverConnectionsAPI, serverConstraintsAPI } from '../../services/api';
 import { getCurrentUser } from '../../utils/auth';
+import { isAdmin } from '../../utils/rbac';
 import PageHeader from '../common/PageHeader';
 import ProtectedAction from '../common/ProtectedAction';
 import { usePermission } from '../../hooks/usePermission';
@@ -1581,7 +1582,7 @@ const WorkflowDetailPage = () => {
             <Tabs value={previewSubTab} onChange={(_, newValue) => setPreviewSubTab(newValue)}>
               <Tab label="Column Mapping" sx={{ textTransform: 'none' }} />
               <Tab label="Constraint Checks" sx={{ textTransform: 'none' }} />
-              <Tab label="Preview Masking" sx={{ textTransform: 'none' }} />
+              {isAdmin() && <Tab label="Sample Data Preview" sx={{ textTransform: 'none' }} />}
             </Tabs>
           </Box>
 
@@ -1608,6 +1609,83 @@ const WorkflowDetailPage = () => {
                       color="success"
                     />
                   </Box>
+
+                  {/* Global Filter Conditions - show if where_mode is global OR (where_mode not set AND has global conditions) */}
+                  {((workflow.where_mode === 'global') || (!workflow.where_mode && workflow.where_conditions && workflow.where_conditions.length > 0 && workflow.where_conditions.some(c => c.column))) && (
+                    <Box sx={{ mt: 2, mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#e3f2fd' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <Chip label="Global" size="small" sx={{ backgroundColor: '#0b2677', color: '#ffffff' }} />
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          Filter Conditions ({workflow.where_conditions.filter(c => c.column).length})
+                        </Typography>
+                      </Box>
+                      {workflow.where_conditions.filter(c => c.column).map((condition, index) => (
+                        <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
+                          {index > 0 && <Chip label={condition.logic || 'AND'} size="small" sx={{ mr: 1, mb: 0.5 }} />}
+                          <strong>{condition.column}</strong>{' '}
+                          {condition.operator === 'IS_PHONE' ? (
+                            <Chip label="IS PHONE" size="small" color="info" />
+                          ) : condition.operator === 'IS_EMAIL' ? (
+                            <Chip label="IS EMAIL" size="small" color="info" />
+                          ) : (
+                            <>{condition.operator || '='} '<strong>{condition.value}</strong>'</>
+                          )}
+                        </Typography>
+                      ))}
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                        Only rows matching these conditions will be masked
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Row-Level WHERE Conditions Summary - show if where_mode is row OR (where_mode not set AND has row conditions) */}
+                  {((workflow.where_mode === 'row') || (!workflow.where_mode && !workflow.where_conditions?.length && workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0))) && workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0) && (
+                    <Box sx={{ mt: 2, mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#e3f2fd' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <Chip label="Row Level" size="small" sx={{ backgroundColor: '#0b2677', color: '#ffffff' }} />
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          Filter Conditions
+                        </Typography>
+                      </Box>
+                      {workflow.column_mappings
+                        .filter(col => col.is_pii && col.where_row_conditions && col.where_row_conditions.length > 0)
+                        .map((col, index) => (
+                          <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
+                            <strong>{col.column_name}</strong>:{' '}
+                            {col.where_row_conditions.map((cond, idx) => (
+                              <span key={idx}>
+                                WHERE <strong>{cond.column}</strong>{' '}
+                                {cond.operator === 'IS_PHONE' ? (
+                                  <Chip label="IS PHONE" size="small" color="info" />
+                                ) : cond.operator === 'IS_EMAIL' ? (
+                                  <Chip label="IS EMAIL" size="small" color="info" />
+                                ) : (
+                                  <>{cond.operator} '<strong>{cond.value}</strong>'</>
+                                )}
+                              </span>
+                            ))}
+                          </Typography>
+                        ))}
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                        Each PII column has its own filtering condition
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Default Mode - No WHERE */}
+                  {(workflow.where_mode === 'none' || !workflow.where_mode) &&
+                   (!workflow.where_conditions || workflow.where_conditions.length === 0) &&
+                   !workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0) && (
+                    <Box sx={{ mt: 2, mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#e3f2fd' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Chip label="Default" size="small" sx={{ backgroundColor: '#0b2677', color: '#ffffff' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          No filter conditions - all rows will be processed
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
+
                   <TableContainer component={Paper} sx={{
                       maxHeight: 400,
                       overflow: 'auto',
@@ -1618,7 +1696,7 @@ const WorkflowDetailPage = () => {
                           <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', position: 'sticky', top: 0, zIndex: 1 }}>Column Name</TableCell>
                           <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', position: 'sticky', top: 0, zIndex: 1 }}>PII</TableCell>
                           <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', position: 'sticky', top: 0, zIndex: 1 }}>PII Attribute</TableCell>
-                          <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', position: 'sticky', top: 0, zIndex: 1 }}>WHERE Condition</TableCell>
+                          <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', position: 'sticky', top: 0, zIndex: 1 }}>Filter Condition</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -1661,91 +1739,6 @@ const WorkflowDetailPage = () => {
                       </TableBody>
                     </Table>
                   </TableContainer>
-
-                  {/* WHERE Mode Indicator - detect from data if where_mode not set */}
-                  {(() => {
-                    // Detect mode from data if where_mode not explicitly set
-                    const hasGlobalWhere = workflow.where_conditions && workflow.where_conditions.length > 0 && workflow.where_conditions.some(c => c.column);
-                    const hasRowWhere = workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0);
-                    const detectedMode = workflow.where_mode || (hasGlobalWhere ? 'global' : hasRowWhere ? 'row' : 'none');
-
-                    return (
-                      <Box sx={{ mt: 3, mb: 2 }}>
-                        <Chip
-                          label={`WHERE Mode: ${detectedMode === 'global' ? 'Global' : detectedMode === 'row' ? 'Row Level' : 'Default (No Filter)'}`}
-                          size="small"
-                          sx={{ backgroundColor: '#0b2677', color: '#ffffff' }}
-                        />
-                      </Box>
-                    );
-                  })()}
-
-                  {/* Global Filter Conditions - show if where_mode is global OR (where_mode not set AND has global conditions) */}
-                  {((workflow.where_mode === 'global') || (!workflow.where_mode && workflow.where_conditions && workflow.where_conditions.length > 0 && workflow.where_conditions.some(c => c.column))) && (
-                    <Box sx={{ mt: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fff3e0' }}>
-                      <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                        Global Filter Conditions ({workflow.where_conditions.filter(c => c.column).length})
-                      </Typography>
-                      {workflow.where_conditions.filter(c => c.column).map((condition, index) => (
-                        <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
-                          {index > 0 && <Chip label={condition.logic || 'AND'} size="small" sx={{ mr: 1, mb: 0.5 }} />}
-                          <strong>{condition.column}</strong>{' '}
-                          {condition.operator === 'IS_PHONE' ? (
-                            <Chip label="IS PHONE" size="small" color="info" />
-                          ) : condition.operator === 'IS_EMAIL' ? (
-                            <Chip label="IS EMAIL" size="small" color="info" />
-                          ) : (
-                            <>{condition.operator || '='} '<strong>{condition.value}</strong>'</>
-                          )}
-                        </Typography>
-                      ))}
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                        Only rows matching these conditions will be masked
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {/* Row-Level WHERE Conditions Summary - show if where_mode is row OR (where_mode not set AND has row conditions) */}
-                  {((workflow.where_mode === 'row') || (!workflow.where_mode && !workflow.where_conditions?.length && workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0))) && workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0) && (
-                    <Box sx={{ mt: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#e8f5e9' }}>
-                      <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                        Row-Level WHERE Conditions
-                      </Typography>
-                      {workflow.column_mappings
-                        .filter(col => col.is_pii && col.where_row_conditions && col.where_row_conditions.length > 0)
-                        .map((col, index) => (
-                          <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
-                            <strong>{col.column_name}</strong>:{' '}
-                            {col.where_row_conditions.map((cond, idx) => (
-                              <span key={idx}>
-                                WHERE <strong>{cond.column}</strong>{' '}
-                                {cond.operator === 'IS_PHONE' ? (
-                                  <Chip label="IS PHONE" size="small" color="info" />
-                                ) : cond.operator === 'IS_EMAIL' ? (
-                                  <Chip label="IS EMAIL" size="small" color="info" />
-                                ) : (
-                                  <>{cond.operator} '<strong>{cond.value}</strong>'</>
-                                )}
-                              </span>
-                            ))}
-                          </Typography>
-                        ))}
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                        Each PII column has its own filtering condition
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {/* Default Mode - No WHERE */}
-                  {(workflow.where_mode === 'none' || !workflow.where_mode) &&
-                   (!workflow.where_conditions || workflow.where_conditions.length === 0) &&
-                   !workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0) && (
-                    <Box sx={{ mt: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#f5f5f5' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        No WHERE conditions - all rows will be processed
-                      </Typography>
-                    </Box>
-                  )}
                 </Box>
               )}
             </Box>
@@ -1758,8 +1751,8 @@ const WorkflowDetailPage = () => {
             </Box>
           )}
 
-          {/* Sub-Tab 2: Preview Masking */}
-          {previewSubTab === 2 && (
+          {/* Sub-Tab 2: Preview Masking (Admin only) */}
+          {isAdmin() && previewSubTab === 2 && (
             <Box>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                 <Typography variant="h6">

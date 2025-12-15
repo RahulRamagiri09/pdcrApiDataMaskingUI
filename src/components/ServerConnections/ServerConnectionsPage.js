@@ -242,7 +242,7 @@ const ServerConnectionsPage = () => {
               <Box display="flex" alignItems="center">
                 {/* <HubIcon sx={{ mr: 1, color: 'primary.main' }} /> */}
                 <Typography variant="h6">
-                  Active Connections ({connections?.length || 0})
+                  Active Connection ({connections?.length || 0})
                 </Typography>
               </Box>
               <ProtectedAction action="connection.create">

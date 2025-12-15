@@ -100,7 +100,7 @@ const CreateWorkflowPage = () => {
   const [tables, setTables] = useState([]);
   const [columns, setColumns] = useState([]);
 
-  const steps = ['Basic Info', 'Select Tables', 'Configure Mapping', 'Review & Create'];
+  const steps = ['Basic Info', 'Select Table', 'Configure Mapping', 'Review & Create'];
 
   // Map SQL data types to PII attribute categories
   const getAttributeCategoryForDataType = (dataType) => {
@@ -202,24 +202,25 @@ const CreateWorkflowPage = () => {
         ];
         setPiiAttributes(flatArray);
 
-        // Store categorized structure for smart filtering
+        // Store categorized structure for smart filtering - SORTED ALPHABETICALLY
         setCategorizedPiiAttributes({
-          string: Array.isArray(piiData.string) ? piiData.string : [],
-          date: Array.isArray(piiData.date) ? piiData.date : [],
-          datetime: Array.isArray(piiData.datetime) ? piiData.datetime : [],
-          numeric: Array.isArray(piiData.numeric) ? piiData.numeric : [],
-          boolean: Array.isArray(piiData.boolean) ? piiData.boolean : []
+          string: Array.isArray(piiData.string) ? [...piiData.string].sort() : [],
+          date: Array.isArray(piiData.date) ? [...piiData.date].sort() : [],
+          datetime: Array.isArray(piiData.datetime) ? [...piiData.datetime].sort() : [],
+          numeric: Array.isArray(piiData.numeric) ? [...piiData.numeric].sort() : [],
+          boolean: Array.isArray(piiData.boolean) ? [...piiData.boolean].sort() : []
         });
       } else if (Array.isArray(piiData)) {
         // Old flat array format: ["first_name", "last_name", ...]
         setPiiAttributes(piiData);
-        // No categorized data available, fallback to showing all attributes for all types
+        // No categorized data available, fallback to showing all attributes for all types - SORTED
+        const sortedPiiData = [...piiData].sort();
         setCategorizedPiiAttributes({
-          string: piiData,
-          date: piiData,
-          datetime: piiData,
-          numeric: piiData,
-          boolean: piiData
+          string: sortedPiiData,
+          date: sortedPiiData,
+          datetime: sortedPiiData,
+          numeric: sortedPiiData,
+          boolean: sortedPiiData
         });
       } else {
         // Invalid or empty response
@@ -407,7 +408,7 @@ const CreateWorkflowPage = () => {
         }));
         await loadColumns();
       } else if (activeStep === 2) {
-        // Validate column mappings
+        // Validate column mapping
         if (formData.column_mappings.length === 0) {
           setError('Please configure at least one column mapping');
           return;
@@ -475,7 +476,7 @@ const CreateWorkflowPage = () => {
       const data = response.data?.data || response.data || [];
       setColumns(Array.isArray(data) ? data : []);
 
-      // Initialize column mappings
+      // Initialize column mapping
       const columnMappings = data.map(col => ({
         column_name: col.name,
         data_type: col.data_type,
@@ -719,7 +720,7 @@ const CreateWorkflowPage = () => {
             <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fafafa' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                  WHERE Condition Mode
+                  Filter Condition Mode
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {whereMode === 'none' && ' -  All rows will be processed without filtering.'}
@@ -768,18 +769,18 @@ const CreateWorkflowPage = () => {
                 }}
               >
                 <ToggleButton value="none" sx={{ px: 2 }}>Default</ToggleButton>
-                <ToggleButton value="global" sx={{ px: 2 }}>Global WHERE</ToggleButton>
-                <ToggleButton value="row" sx={{ px: 2 }}>Row Level WHERE</ToggleButton>
+                <ToggleButton value="global" sx={{ px: 2 }}>Global</ToggleButton>
+                <ToggleButton value="row" sx={{ px: 2 }}>Row Level</ToggleButton>
               </ToggleButtonGroup>
             </Box>
 
-            {/* Global WHERE Conditions Section - Only shown when global mode is active */}
+            {/* Global Filter Conditions Section - Only shown when global mode is active */}
             {whereMode === 'global' && (
             <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fafafa' }}>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                    Global WHERE Conditions
+                    Global Filter Conditions
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     - Filter rows to mask based on conditions. Only rows matching these conditions will be processed.
@@ -929,9 +930,9 @@ const CreateWorkflowPage = () => {
             </Box>
             )}
 
-            {/* Column Mappings Section */}
+            {/* Column Mapping Section */}
             <Typography variant="h6" gutterBottom>
-              Configure Column Mappings for {formData.table_name}
+              Configure Column Mapping for {formData.table_name}
             </Typography>
             <TableContainer component={Paper} sx={{
                 maxHeight: 400,
@@ -1129,10 +1130,10 @@ const CreateWorkflowPage = () => {
                   ))}
                 </Box>
               </Grid>
-              {/* Global WHERE Conditions - shown when in global mode */}
+              {/* Global Filter Conditions - shown when in global mode */}
               {whereMode === 'global' && formData.where_conditions.length > 0 && formData.where_conditions.some(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)) && (
                 <Grid size={12}>
-                  <Typography variant="subtitle1">Global WHERE Conditions ({formData.where_conditions.filter(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)).length})</Typography>
+                  <Typography variant="subtitle1">Global Filter Conditions ({formData.where_conditions.filter(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)).length})</Typography>
                   <Box sx={{ mt: 1, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fff3e0' }}>
                     {formData.where_conditions.filter(c => c.column && (['IS_PHONE', 'IS_EMAIL'].includes(c.operator) || c.value)).map((condition, index) => (
                       <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>

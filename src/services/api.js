@@ -138,7 +138,7 @@ export const userAPI = {
 const POC_API_BASE_URL = process.env.REACT_APP_POC_API_BASE_URL || 'http://localhost:8000/api';
 
 // Create axios instance for server APIs with auth
-const pocApi = axios.create({
+const piiApi = axios.create({
   baseURL: POC_API_BASE_URL,
   timeout: 30000,
   headers: {
@@ -147,7 +147,7 @@ const pocApi = axios.create({
 });
 
 // Add auth token to requests
-pocApi.interceptors.request.use(
+piiApi.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('authToken');
     if (token && token.length > 0) {
@@ -163,7 +163,7 @@ pocApi.interceptors.request.use(
 );
 
 // API error handling
-pocApi.interceptors.response.use(
+piiApi.interceptors.response.use(
   (response) => {
     return response;
   },
@@ -209,98 +209,98 @@ pocApi.interceptors.response.use(
 // Server Connections API
 export const serverConnectionsAPI = {
   // Connection CRUD operations
-  getAll: () => pocApi.get('/server/connections'),
-  create: (connectionData) => pocApi.post('/server/connections', connectionData),
-  getById: (id) => pocApi.get(`/server/connections/${id}`),
-  delete: (id) => pocApi.delete(`/server/connections/${id}`),
-  test: (connectionData) => pocApi.post('/server/connections/test', connectionData),
+  getAll: () => piiApi.get('/server/connections'),
+  create: (connectionData) => piiApi.post('/server/connections', connectionData),
+  getById: (id) => piiApi.get(`/server/connections/${id}`),
+  delete: (id) => piiApi.delete(`/server/connections/${id}`),
+  test: (connectionData) => piiApi.post('/server/connections/test', connectionData),
 
   // Schema discovery
-  getSchemas: (connectionId) => pocApi.get(`/server/connections/${connectionId}/schemas`),
+  getSchemas: (connectionId) => piiApi.get(`/server/connections/${connectionId}/schemas`),
 
   // Table discovery by schema
   getTablesBySchema: (connectionId, schemaName) =>
-    pocApi.get(`/server/connections/${connectionId}/schemas/${schemaName}/tables`),
+    piiApi.get(`/server/connections/${connectionId}/schemas/${schemaName}/tables`),
 
   // Column discovery for a specific table
   getTableColumns: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/server/connections/${connectionId}/schemas/${schemaName}/tables/${tableName}/columns`),
+    piiApi.get(`/server/connections/${connectionId}/schemas/${schemaName}/tables/${tableName}/columns`),
 };
 
 // Server Workflows API
 export const serverWorkflowsAPI = {
   // Workflow CRUD operations
-  getAll: () => pocApi.get('/server/workflows'),
-  create: (workflowData) => pocApi.post('/server/workflows', workflowData),
-  getById: (id) => pocApi.get(`/server/workflows/${id}`),
-  update: (id, workflowData) => pocApi.put(`/server/workflows/${id}`, workflowData),
-  delete: (id) => pocApi.delete(`/server/workflows/${id}`),
+  getAll: () => piiApi.get('/server/workflows'),
+  create: (workflowData) => piiApi.post('/server/workflows', workflowData),
+  getById: (id) => piiApi.get(`/server/workflows/${id}`),
+  update: (id, workflowData) => piiApi.put(`/server/workflows/${id}`, workflowData),
+  delete: (id) => piiApi.delete(`/server/workflows/${id}`),
 
   // Execution history
-  getExecutions: (workflowId) => pocApi.get(`/server/workflows/${workflowId}/executions`),
+  getExecutions: (workflowId) => piiApi.get(`/server/workflows/${workflowId}/executions`),
 
   // PII attributes (reuses same endpoint as two-server system)
-  getPiiAttributes: () => pocApi.get('/server/workflows/pii-attributes'),
+  getPiiAttributes: () => piiApi.get('/server/workflows/pii-attributes'),
 };
 
 // Server Execution/Masking API
 export const serverMaskingAPI = {
   // Execute workflow (in-place UPDATE)
-  executeWorkflow: (workflowId) => pocApi.post(`/server/workflows/${workflowId}/execute`),
+  executeWorkflow: (workflowId) => piiApi.post(`/server/workflows/${workflowId}/execute`),
 
   // Get execution status
   getExecutionStatus: (workflowId, executionId) =>
-    pocApi.get(`/server/workflows/${workflowId}/executions/${executionId}/status`),
+    piiApi.get(`/server/workflows/${workflowId}/executions/${executionId}/status`),
 
   // Stop running execution
   stopExecution: (workflowId, executionId) =>
-    pocApi.post(`/server/workflows/${workflowId}/executions/${executionId}/stop`),
+    piiApi.post(`/server/workflows/${workflowId}/executions/${executionId}/stop`),
 
   // Pause running execution
   pauseExecution: (workflowId, executionId) =>
-    pocApi.post(`/server/workflows/${workflowId}/executions/${executionId}/pause`),
+    piiApi.post(`/server/workflows/${workflowId}/executions/${executionId}/pause`),
 
   // Resume paused execution
   resumeExecution: (workflowId, executionId) =>
-    pocApi.post(`/server/workflows/${workflowId}/executions/${executionId}/resume`),
+    piiApi.post(`/server/workflows/${workflowId}/executions/${executionId}/resume`),
 
   // Generate sample masked data for preview (reuses same endpoint)
   generateSampleData: (piiAttribute, count = 5) =>
-    pocApi.post('/masking/sample-data', { pii_attribute: piiAttribute, count }),
+    piiApi.post('/masking/sample-data', { pii_attribute: piiAttribute, count }),
 
   // Validate workflow configuration
   validateWorkflow: (workflowId) =>
-    pocApi.post('/server/masking/validate-workflow', { workflow_id: workflowId }),
+    piiApi.post('/server/masking/validate-workflow', { workflow_id: workflowId }),
 
   // Preview masking - get sample records with original and masked data
   getPreviewMasking: (workflowId, limit = 10) =>
-    pocApi.get(`/server/workflows/${workflowId}/preview?limit=${limit}`),
+    piiApi.get(`/server/workflows/${workflowId}/preview?limit=${limit}`),
 };
 
 // Server Constraints API
 export const serverConstraintsAPI = {
   // Check all constraints for a specific table
   checkAll: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/all`),
+    piiApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/all`),
 
   // Individual constraint checks
   checkPrimaryKeys: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/primary-keys`),
+    piiApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/primary-keys`),
 
   checkForeignKeys: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/foreign-keys`),
+    piiApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/foreign-keys`),
 
   checkUniqueConstraints: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/unique`),
+    piiApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/unique`),
 
   checkCheckConstraints: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/check`),
+    piiApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/check`),
 
   checkTriggers: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/triggers`),
+    piiApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/triggers`),
 
   checkIndexes: (connectionId, schemaName, tableName) =>
-    pocApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/indexes`)
+    piiApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/indexes`)
 };
 
 export default api;

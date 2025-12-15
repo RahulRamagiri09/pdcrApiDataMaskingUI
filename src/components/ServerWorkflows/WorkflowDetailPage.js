@@ -1589,12 +1589,12 @@ const WorkflowDetailPage = () => {
           {previewSubTab === 0 && (
             <Box>
               {/* <Typography variant="h6" gutterBottom>
-                Column Mappings
+                Column Mapping
               </Typography> */}
 
               {!workflow.column_mappings || workflow.column_mappings.length === 0 ? (
                 <Alert severity="info" sx={{ mt: 2 }}>
-                  No column mappings found for this workflow.
+                  No column mapping found for this workflow.
                 </Alert>
               ) : (
                 <Box sx={{ mt: 2 }}>
@@ -1680,11 +1680,11 @@ const WorkflowDetailPage = () => {
                     );
                   })()}
 
-                  {/* Global WHERE Conditions - show if where_mode is global OR (where_mode not set AND has global conditions) */}
+                  {/* Global Filter Conditions - show if where_mode is global OR (where_mode not set AND has global conditions) */}
                   {((workflow.where_mode === 'global') || (!workflow.where_mode && workflow.where_conditions && workflow.where_conditions.length > 0 && workflow.where_conditions.some(c => c.column))) && (
                     <Box sx={{ mt: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fff3e0' }}>
                       <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                        Global WHERE Conditions ({workflow.where_conditions.filter(c => c.column).length})
+                        Global Filter Conditions ({workflow.where_conditions.filter(c => c.column).length})
                       </Typography>
                       {workflow.where_conditions.filter(c => c.column).map((condition, index) => (
                         <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>

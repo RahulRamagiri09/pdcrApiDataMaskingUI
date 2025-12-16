@@ -255,7 +255,7 @@ const ServerDashboard = () => {
               }}
             >
               {canCreateWorkflow && (
-                <MenuItem onClick={() => handleQuickAction('/server/workflows/create')}>
+                <MenuItem onClick={() => handleQuickAction('/datamasking/workflows/create')}>
                   <ListItemIcon>
                     <WorkflowIcon fontSize="small" />
                   </ListItemIcon>
@@ -263,14 +263,14 @@ const ServerDashboard = () => {
                 </MenuItem>
               )}
               {canCreateConnection && (
-                <MenuItem onClick={() => handleQuickAction('/server/connections')}>
+                <MenuItem onClick={() => handleQuickAction('/datamasking/connections')}>
                   <ListItemIcon>
                     <AddIcon fontSize="small" />
                   </ListItemIcon>
                   <ListItemText>Add Connection</ListItemText>
                 </MenuItem>
               )}
-              <MenuItem onClick={() => handleQuickAction('/server/workflows')}>
+              <MenuItem onClick={() => handleQuickAction('/datamasking/workflows')}>
                 <ListItemIcon>
                   <VisibilityIcon fontSize="small" />
                 </ListItemIcon>
@@ -368,7 +368,7 @@ const ServerDashboard = () => {
                   pageSizeOptions={[25, 50, 100]}
                   disableSelectionOnClick
                   loading={tableLoading}
-                  onRowClick={(params) => navigate(`/server/workflows/${params.row.id}`)}
+                  onRowClick={(params) => navigate(`/datamasking/workflows/${params.row.id}`)}
                   sx={{
                     '& .MuiDataGrid-virtualScroller': {
                       '&::-webkit-scrollbar': {
@@ -443,7 +443,7 @@ const ServerDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Recent Workflows */}
+        {/* Recent Workflows - COMMENTED OUT
         <Card sx={{ mt: 3 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -469,7 +469,7 @@ const ServerDashboard = () => {
                         backgroundColor: 'action.hover',
                       },
                     }}
-                    onClick={() => navigate(`/server/workflows/${workflow.id}`)}
+                    onClick={() => navigate(`/datamasking/workflows/${workflow.id}`)}
                   >
                     <Box display="flex" alignItems="center" justifyContent="space-between">
                       <Box>
@@ -491,6 +491,7 @@ const ServerDashboard = () => {
             )}
           </CardContent>
         </Card>
+        */}
       </Box>
     </ThemeProvider>
   );

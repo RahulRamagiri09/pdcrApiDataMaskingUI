@@ -162,7 +162,7 @@ const CreateWorkflowPage = () => {
     if (hasPermission === false) {
       setError(`You do not have permission to ${isEditMode ? 'edit' : 'create'} workflows. This action requires Admin role.`);
       setTimeout(() => {
-        navigate('/server/workflows');
+        navigate('/datamasking/workflows');
       }, 2000);
     }
   }, [canCreate, canUpdate, isEditMode, navigate]);
@@ -592,7 +592,7 @@ const CreateWorkflowPage = () => {
       } else {
         await serverWorkflowsAPI.create(transformedPayload);
       }
-      navigate('/server/workflows');
+      navigate('/datamasking/workflows');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -1207,7 +1207,7 @@ const CreateWorkflowPage = () => {
     return (
       <Box>
         <Box display="flex" alignItems="center" mb={1}>
-          <IconButton onClick={() => navigate('/server/workflows')} sx={{ mr: 2 }}>
+          <IconButton onClick={() => navigate('/datamasking/workflows')} sx={{ mr: 2 }}>
             <ArrowBackIcon />
           </IconButton>
           <Box>

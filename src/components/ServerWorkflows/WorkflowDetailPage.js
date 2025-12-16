@@ -338,7 +338,7 @@ const WorkflowDetailPage = () => {
     if (window.confirm('Are you sure you want to delete this workflow? This action cannot be undone.')) {
       try {
         await serverWorkflowsAPI.delete(workflowId);
-        navigate('/server/workflows');
+        navigate('/datamasking/workflows');
       } catch (err) {
         setError(err.message);
       }
@@ -1277,7 +1277,7 @@ const WorkflowDetailPage = () => {
               <Button
                 variant="outlined"
                 startIcon={<EditIcon />}
-                onClick={() => navigate(`/server/workflows/${workflowId}/edit`)}
+                onClick={() => navigate(`/datamasking/workflows/${workflowId}/edit`)}
               >
                 Edit Workflow
               </Button>
@@ -2280,7 +2280,7 @@ const WorkflowDetailPage = () => {
           <>
             <Box display="flex" alignItems="center" mb={0}>
           <IconButton
-            onClick={() => navigate('/server/workflows')}
+            onClick={() => navigate('/datamasking/workflows')}
             sx={{
               mr: 2,
               '&:hover': {

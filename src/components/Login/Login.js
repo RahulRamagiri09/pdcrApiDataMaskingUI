@@ -61,7 +61,7 @@ const Login = () => {
       saveAuthData(token, user);
 
       // Redirect to dashboard
-      navigate('/server/dashboard');
+      navigate('/datamasking/dashboard');
     } catch (error) {
       console.error('❌ LOGIN ERROR:', error);
       console.error('   Error type:', error.constructor.name);

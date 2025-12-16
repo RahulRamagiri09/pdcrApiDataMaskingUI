@@ -209,7 +209,7 @@ const ServerWorkflowsPage = () => {
         <Box>
           <IconButton
             size="small"
-            onClick={() => navigate(`/server/workflows/${params.row.id}`)}
+            onClick={() => navigate(`/datamasking/workflows/${params.row.id}`)}
             color="primary"
             title="View Details"
           >
@@ -275,7 +275,7 @@ const ServerWorkflowsPage = () => {
                   <Button
                     variant="contained"
                     startIcon={<AddIcon />}
-                    onClick={() => navigate('/server/workflows/create')}
+                    onClick={() => navigate('/datamasking/workflows/create')}
                   >
                     Create Workflow
                   </Button>

@@ -25,7 +25,7 @@ function App() {
 
             {/* Server routes - Wrapped with MainLayout */}
             <Route
-              path="/server/dashboard"
+              path="/datamasking/dashboard"
               element={
                 <ProtectedRoute>
                   <MainLayout>
@@ -35,7 +35,7 @@ function App() {
               }
             />
             <Route
-              path="/server/connections"
+              path="/datamasking/connections"
               element={
                 <ProtectedRoute>
                   <MainLayout>
@@ -45,7 +45,7 @@ function App() {
               }
             />
             <Route
-              path="/server/workflows"
+              path="/datamasking/workflows"
               element={
                 <ProtectedRoute>
                   <MainLayout>
@@ -55,7 +55,7 @@ function App() {
               }
             />
             <Route
-              path="/server/workflows/create"
+              path="/datamasking/workflows/create"
               element={
                 <ProtectedRoute>
                   <MainLayout>
@@ -65,7 +65,7 @@ function App() {
               }
             />
             <Route
-              path="/server/workflows/:id/edit"
+              path="/datamasking/workflows/:id/edit"
               element={
                 <ProtectedRoute>
                   <MainLayout>
@@ -75,7 +75,7 @@ function App() {
               }
             />
             <Route
-              path="/server/workflows/:id"
+              path="/datamasking/workflows/:id"
               element={
                 <ProtectedRoute>
                   <MainLayout>

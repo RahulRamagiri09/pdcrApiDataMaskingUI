@@ -32,19 +32,19 @@ const navigationItems = [
   {
     text: 'Dashboard',
     icon: <DashboardIcon />,
-    path: '/server/dashboard',
+    path: '/datamasking/dashboard',
     section: 'main',
   },
   {
     text: 'Connections',
     icon: <StorageIcon />,
-    path: '/server/connections',
+    path: '/datamasking/connections',
     section: 'main',
   },
   {
     text: 'Workflows',
     icon: <WorkflowIcon />,
-    path: '/server/workflows',
+    path: '/datamasking/workflows',
     section: 'main',
   },
   {
@@ -177,7 +177,7 @@ const Sidebar = () => {
     >
       {/* Logo Section - Top */}
       <Box
-        onClick={() => handleNavigation('/server/dashboard')}
+        onClick={() => handleNavigation('/datamasking/dashboard')}
         sx={{
           display: 'flex',
           alignItems: 'center',

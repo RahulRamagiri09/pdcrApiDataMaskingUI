@@ -150,6 +150,7 @@ const WorkflowDetailPage = () => {
   const [previewRecordLimit, setPreviewRecordLimit] = useState(2);
   const [expandedRecords, setExpandedRecords] = useState({});
   const [previewSubTab, setPreviewSubTab] = useState(0);
+  const [filterConditionsExpanded, setFilterConditionsExpanded] = useState(false);
 
   useEffect(() => {
     console.log('[DEBUG] useEffect fired with workflowId:', workflowId);
@@ -558,19 +559,36 @@ const WorkflowDetailPage = () => {
       const response = await serverMaskingAPI.getPreviewMasking(workflow.id, previewRecordLimit);
       const responseData = response.data?.data;
 
-      if (!responseData || !responseData.preview_results || responseData.preview_results.length === 0) {
+      // Handle row-level mode with condition_groups
+      if (responseData?.where_mode === 'row' && responseData?.condition_groups) {
+        if (responseData.condition_groups.length === 0) {
+          setPreviewError('No records found matching the filter conditions');
+          setPreviewData(null);
+          return;
+        }
+        setPreviewData({
+          where_mode: 'row',
+          condition_groups: responseData.condition_groups,
+          schema_name: responseData.schema_name,
+          table_name: responseData.table_name,
+          total_records: responseData.total_records
+        });
+      }
+      // Handle none/global mode with flat preview_results
+      else if (responseData?.preview_results && responseData.preview_results.length > 0) {
+        setPreviewData({
+          where_mode: responseData.where_mode || 'none',
+          results: responseData.preview_results,
+          schema_name: responseData.schema_name,
+          table_name: responseData.table_name,
+          total_records: responseData.total_records,
+          sample_count: responseData.sample_count
+        });
+      } else {
         setPreviewError('No records found in the target table');
         setPreviewData(null);
         return;
       }
-
-      setPreviewData({
-        results: responseData.preview_results,
-        schema_name: responseData.schema_name,
-        table_name: responseData.table_name,
-        total_records: responseData.total_records,
-        sample_count: responseData.sample_count
-      });
 
     } catch (err) {
       setPreviewError(err.response?.data?.detail || err.message || 'Failed to load preview');
@@ -1612,78 +1630,148 @@ const WorkflowDetailPage = () => {
 
                   {/* Global Filter Conditions - show if where_mode is global OR (where_mode not set AND has global conditions) */}
                   {((workflow.where_mode === 'global') || (!workflow.where_mode && workflow.where_conditions && workflow.where_conditions.length > 0 && workflow.where_conditions.some(c => c.column))) && (
-                    <Box sx={{ mt: 2, mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#e3f2fd' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Chip label="Global" size="small" sx={{ backgroundColor: '#0b2677', color: '#ffffff' }} />
-                        <Typography variant="subtitle1" fontWeight="bold">
-                          Filter Conditions ({workflow.where_conditions.filter(c => c.column).length})
-                        </Typography>
-                      </Box>
-                      {workflow.where_conditions.filter(c => c.column).map((condition, index) => (
-                        <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
-                          {index > 0 && <Chip label={condition.logic || 'AND'} size="small" sx={{ mr: 1, mb: 0.5 }} />}
-                          <strong>{condition.column}</strong>{' '}
-                          {condition.operator === 'IS_PHONE' ? (
-                            <Chip label="IS PHONE" size="small" color="info" />
-                          ) : condition.operator === 'IS_EMAIL' ? (
-                            <Chip label="IS EMAIL" size="small" color="info" />
-                          ) : (
-                            <>{condition.operator || '='} '<strong>{condition.value}</strong>'</>
-                          )}
-                        </Typography>
-                      ))}
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                        Only rows matching these conditions will be masked
-                      </Typography>
-                    </Box>
+                    <Card variant="outlined" sx={{ mt: 2, mb: 2, borderColor: '#1976d2', borderWidth: 2, backgroundColor: '#e3f2fd' }}>
+                      <CardContent sx={{ pt: 1.5, px: 2, pb: 1.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Chip label="Global" size="small" sx={{ backgroundColor: '#0b2677', color: '#ffffff' }} />
+                            <Typography variant="subtitle1" fontWeight="bold">
+                              Filter Conditions
+                            </Typography>
+                            <Chip
+                              label={`${workflow.where_conditions.filter(c => c.column).length} condition${workflow.where_conditions.filter(c => c.column).length !== 1 ? 's' : ''}`}
+                              size="small"
+                              color="primary"
+                            />
+                          </Box>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<ExpandMoreIcon sx={{
+                              transform: filterConditionsExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                              transition: '0.3s'
+                            }} />}
+                            onClick={() => setFilterConditionsExpanded(!filterConditionsExpanded)}
+                          >
+                            {filterConditionsExpanded ? 'Hide' : 'Show'} Details
+                          </Button>
+                        </Box>
+                        {filterConditionsExpanded && (
+                          <Box mt={2}>
+                            <Divider sx={{ mb: 2 }} />
+                            {workflow.where_conditions.filter(c => c.column).map((condition, index) => (
+                              <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
+                                {index > 0 && <Chip label={condition.logic || 'AND'} size="small" sx={{ mr: 1, mb: 0.5 }} />}
+                                <strong>{condition.column}</strong>{' '}
+                                {condition.operator === 'IS_PHONE' ? (
+                                  <Chip label="IS PHONE" size="small" color="info" />
+                                ) : condition.operator === 'IS_EMAIL' ? (
+                                  <Chip label="IS EMAIL" size="small" color="info" />
+                                ) : (
+                                  <>{condition.operator || '='} '<strong>{condition.value}</strong>'</>
+                                )}
+                              </Typography>
+                            ))}
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                              Only rows matching these conditions will be masked
+                            </Typography>
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
                   )}
 
                   {/* Row-Level WHERE Conditions Summary - show if where_mode is row OR (where_mode not set AND has row conditions) */}
-                  {((workflow.where_mode === 'row') || (!workflow.where_mode && !workflow.where_conditions?.length && workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0))) && workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0) && (
-                    <Box sx={{ mt: 2, mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#e3f2fd' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Chip label="Row Level" size="small" sx={{ backgroundColor: '#0b2677', color: '#ffffff' }} />
-                        <Typography variant="subtitle1" fontWeight="bold">
-                          Filter Conditions
-                        </Typography>
-                      </Box>
-                      {workflow.column_mappings
-                        .filter(col => col.is_pii && col.where_row_conditions && col.where_row_conditions.length > 0)
-                        .map((col, index) => (
-                          <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
-                            <strong>{col.column_name}</strong>:{' '}
-                            {col.where_row_conditions.map((cond, idx) => (
-                              <span key={idx}>
-                                WHERE <strong>{cond.column}</strong>{' '}
-                                {cond.operator === 'IS_PHONE' ? (
-                                  <Chip label="IS PHONE" size="small" color="info" />
-                                ) : cond.operator === 'IS_EMAIL' ? (
-                                  <Chip label="IS EMAIL" size="small" color="info" />
-                                ) : (
-                                  <>{cond.operator} '<strong>{cond.value}</strong>'</>
-                                )}
-                              </span>
+                  {((workflow.where_mode === 'row') || (!workflow.where_mode && !workflow.where_conditions?.length && workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0))) && workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0) && (() => {
+                    // Group columns by their WHERE condition
+                    const groupedByCondition = {};
+                    workflow.column_mappings
+                      .filter(col => col.is_pii && col.where_row_conditions && col.where_row_conditions.length > 0)
+                      .forEach(col => {
+                        col.where_row_conditions.forEach(cond => {
+                          const conditionKey = `${cond.column}|${cond.operator}|${cond.value || ''}`;
+                          if (!groupedByCondition[conditionKey]) {
+                            groupedByCondition[conditionKey] = {
+                              condition: cond,
+                              columns: []
+                            };
+                          }
+                          if (!groupedByCondition[conditionKey].columns.includes(col.column_name)) {
+                            groupedByCondition[conditionKey].columns.push(col.column_name);
+                          }
+                        });
+                      });
+                    const groupedConditions = Object.values(groupedByCondition);
+
+                    return (
+                    <Card variant="outlined" sx={{ mt: 2, mb: 2, borderColor: '#1976d2', borderWidth: 2, backgroundColor: '#e3f2fd' }}>
+                      <CardContent sx={{ pt: 1.5, px: 2, pb: 1.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Chip label="Row Level" size="small" sx={{ backgroundColor: '#0b2677', color: '#ffffff' }} />
+                            <Typography variant="subtitle1" fontWeight="bold">
+                              Filter Conditions
+                            </Typography>
+                            <Chip
+                              label={`${groupedConditions.length} condition${groupedConditions.length !== 1 ? 's' : ''}`}
+                              size="small"
+                              color="primary"
+                            />
+                          </Box>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<ExpandMoreIcon sx={{
+                              transform: filterConditionsExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                              transition: '0.3s'
+                            }} />}
+                            onClick={() => setFilterConditionsExpanded(!filterConditionsExpanded)}
+                          >
+                            {filterConditionsExpanded ? 'Hide' : 'Show'} Details
+                          </Button>
+                        </Box>
+                        {filterConditionsExpanded && (
+                          <Box mt={2}>
+                            <Divider sx={{ mb: 2 }} />
+                            {groupedConditions.map((group, index) => (
+                              <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
+                                <strong>{group.columns.join(', ')}</strong>:{' '}
+                                <span>
+                                  WHERE <strong>{group.condition.column}</strong>{' '}
+                                  {group.condition.operator === 'IS_PHONE' ? (
+                                    <Chip label="IS PHONE" size="small" color="info" />
+                                  ) : group.condition.operator === 'IS_EMAIL' ? (
+                                    <Chip label="IS EMAIL" size="small" color="info" />
+                                  ) : (
+                                    <>{group.condition.operator} '<strong>{group.condition.value}</strong>'</>
+                                  )}
+                                </span>
+                              </Typography>
                             ))}
-                          </Typography>
-                        ))}
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                        Each PII column has its own filtering condition
-                      </Typography>
-                    </Box>
-                  )}
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                              Columns grouped by their common filter condition
+                            </Typography>
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
+                    );
+                  })()}
 
                   {/* Default Mode - No WHERE */}
                   {(workflow.where_mode === 'none' || !workflow.where_mode) &&
                    (!workflow.where_conditions || workflow.where_conditions.length === 0) &&
                    !workflow.column_mappings?.some(col => col.where_row_conditions && col.where_row_conditions.length > 0) && (
-                    <Box sx={{ mt: 2, mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#e3f2fd' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Chip label="Default" size="small" sx={{ backgroundColor: '#0b2677', color: '#ffffff' }} />
-                        <Typography variant="body2" color="text.secondary">
-                          No filter conditions - all rows will be processed
-                        </Typography>
-                      </Box>
-                    </Box>
+                    <Card variant="outlined" sx={{ mt: 2, mb: 2, borderColor: 'grey.400', backgroundColor: '#e3f2fd' }}>
+                      <CardContent sx={{ pt: 1.5, px: 2, pb: 1.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Chip label="Default" size="small" sx={{ backgroundColor: '#0b2677', color: '#ffffff' }} />
+                          <Typography variant="body2" color="text.secondary">
+                            No filter conditions - all rows will be processed
+                          </Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
                   )}
 
                   <TableContainer component={Paper} sx={{
@@ -1805,12 +1893,154 @@ const WorkflowDetailPage = () => {
                   <Box mb={2}>
                     <Typography variant="body2" color="text.secondary">
                       Table: <strong>{previewData.schema_name}.{previewData.table_name}</strong> |
-                      Total Records: <strong>{previewData.total_records?.toLocaleString()}</strong> |
-                      Showing: <strong>{previewData.sample_count}</strong> sample records
+                      Total Records: <strong>{previewData.total_records?.toLocaleString()}</strong>
+                      {previewData.where_mode !== 'row' && previewData.sample_count && (
+                        <> | Showing: <strong>{previewData.sample_count}</strong> sample records</>
+                      )}
+                      {previewData.where_mode && (
+                        <> | Mode: <Chip label={previewData.where_mode === 'row' ? 'Row Level' : previewData.where_mode === 'global' ? 'Global' : 'Default'} size="small" sx={{ ml: 1 }} /></>
+                      )}
                     </Typography>
                   </Box>
 
-                  {previewData.results.map((result, index) => {
+                  {/* Row Level Mode - Grouped by Condition */}
+                  {previewData.where_mode === 'row' && previewData.condition_groups && (
+                    <>
+                      {previewData.condition_groups.map((group, groupIndex) => (
+                        <Card key={groupIndex} variant="outlined" sx={{ mb: 3, borderColor: '#1976d2', borderWidth: 2 }}>
+                          <CardContent>
+                            {/* Group Header */}
+                            <Box sx={{ mb: 2, p: 2, backgroundColor: '#e3f2fd', borderRadius: 1 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                <Chip label={`Condition ${groupIndex + 1}`} size="small" sx={{ backgroundColor: '#0b2677', color: '#ffffff' }} />
+                                <Typography variant="subtitle1" fontWeight="bold">
+                                  WHERE {group.condition}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                                <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+                                  Columns masked:
+                                </Typography>
+                                {group.columns_masked.map((col, colIdx) => (
+                                  <Chip key={colIdx} label={col} size="small" color="warning" sx={{ height: 22 }} />
+                                ))}
+                              </Box>
+                              <Typography variant="body2" color="text.secondary">
+                                Matching records: <strong>{group.matching_records?.toLocaleString()}</strong> |
+                                Showing: <strong>{group.sample_count}</strong> sample records
+                              </Typography>
+                            </Box>
+
+                            {/* Records for this group */}
+                            {group.preview_results.map((result, recordIndex) => {
+                              const recordKey = `${groupIndex}-${recordIndex}`;
+                              const isExpanded = expandedRecords[recordKey] || false;
+                              const allColumns = Object.keys(result.original);
+
+                              return (
+                                <Accordion
+                                  key={recordKey}
+                                  expanded={isExpanded}
+                                  onChange={() => setExpandedRecords(prev => ({ ...prev, [recordKey]: !prev[recordKey] }))}
+                                  sx={{ mb: 1 }}
+                                >
+                                  <AccordionSummary
+                                    expandIcon={<ExpandMoreIcon />}
+                                    sx={{
+                                      backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                                      '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.12)' },
+                                      borderLeft: '4px solid #1976d2'
+                                    }}
+                                  >
+                                    <Typography variant="subtitle1" fontWeight="500">
+                                      Record {recordIndex + 1}
+                                      {result.original.id !== undefined && ` - ID: ${result.original.id}`}
+                                    </Typography>
+                                  </AccordionSummary>
+                                  <AccordionDetails>
+                                    <TableContainer component={Paper} variant="outlined" sx={{
+                                        overflow: 'auto',
+                                        '&::-webkit-scrollbar': { display: 'none' },
+                                        msOverflowStyle: 'none',
+                                        scrollbarWidth: 'none',
+                                      }}>
+                                      <Table size="small">
+                                        <TableHead>
+                                          <TableRow>
+                                            <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', width: '25%' }}>Column Name</TableCell>
+                                            <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', width: '37.5%' }}>Original Value</TableCell>
+                                            <TableCell sx={{ backgroundColor: '#0b2677', color: '#ffffff', width: '37.5%' }}>Masked Value</TableCell>
+                                          </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                          {allColumns.map((columnName, colIndex) => {
+                                            const isMaskedColumn = group.columns_masked.includes(columnName);
+                                            const originalValue = result.original[columnName];
+                                            const maskedValue = result.masked[columnName];
+                                            const hasChanged = originalValue !== maskedValue;
+
+                                            return (
+                                              <TableRow
+                                                key={columnName}
+                                                sx={{
+                                                  backgroundColor: isMaskedColumn ? '#fff3e0' : (colIndex % 2 === 0 ? '#f9f9f9' : '#ffffff'),
+                                                }}
+                                              >
+                                                <TableCell>
+                                                  <Box display="flex" alignItems="center" gap={1}>
+                                                    {columnName}
+                                                    {isMaskedColumn && (
+                                                      <Chip
+                                                        label="Masked"
+                                                        size="small"
+                                                        color="warning"
+                                                        sx={{ height: 20, fontSize: '0.7rem' }}
+                                                      />
+                                                    )}
+                                                  </Box>
+                                                </TableCell>
+                                                <TableCell>
+                                                  <Typography
+                                                    variant="body2"
+                                                    sx={{
+                                                      fontFamily: 'monospace',
+                                                      wordBreak: 'break-all'
+                                                    }}
+                                                  >
+                                                    {originalValue === null ? <em>null</em> : String(originalValue)}
+                                                  </Typography>
+                                                </TableCell>
+                                                <TableCell>
+                                                  <Typography
+                                                    variant="body2"
+                                                    sx={{
+                                                      fontFamily: 'monospace',
+                                                      fontWeight: hasChanged ? 'bold' : 'normal',
+                                                      color: hasChanged ? 'primary.main' : 'inherit',
+                                                      wordBreak: 'break-all'
+                                                    }}
+                                                  >
+                                                    {maskedValue === null ? <em>null</em> : String(maskedValue)}
+                                                  </Typography>
+                                                </TableCell>
+                                              </TableRow>
+                                            );
+                                          })}
+                                        </TableBody>
+                                      </Table>
+                                    </TableContainer>
+                                  </AccordionDetails>
+                                </Accordion>
+                              );
+                            })}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </>
+                  )}
+
+                  {/* None/Global Mode - Flat List */}
+                  {previewData.where_mode !== 'row' && previewData.results && previewData.results.map((result, index) => {
                     const isExpanded = expandedRecords[index] || false;
                     const allColumns = Object.keys(result.original);
 

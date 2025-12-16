@@ -211,20 +211,20 @@ export const serverConnectionsAPI = {
   // Connection CRUD operations
   getAll: () => piiApi.get('/server/connections'),
   create: (connectionData) => piiApi.post('/server/connections', connectionData),
-  getById: (id) => piiApi.get(`/server/connections/${id}`),
-  delete: (id) => piiApi.delete(`/server/connections/${id}`),
+  getById: (id) => piiApi.post('/server/connections/getById', { id }),
+  delete: (id) => piiApi.delete('/server/connections/delete', { data: { id } }),
   test: (connectionData) => piiApi.post('/server/connections/test', connectionData),
 
   // Schema discovery
-  getSchemas: (connectionId) => piiApi.get(`/server/connections/${connectionId}/schemas`),
+  getSchemas: (connectionId) => piiApi.post('/server/connections/schemas', { connection_id: connectionId }),
 
   // Table discovery by schema
   getTablesBySchema: (connectionId, schemaName) =>
-    piiApi.get(`/server/connections/${connectionId}/schemas/${schemaName}/tables`),
+    piiApi.post('/server/connections/tables', { connection_id: connectionId, schema_name: schemaName }),
 
   // Column discovery for a specific table
   getTableColumns: (connectionId, schemaName, tableName) =>
-    piiApi.get(`/server/connections/${connectionId}/schemas/${schemaName}/tables/${tableName}/columns`),
+    piiApi.post('/server/connections/columns', { connection_id: connectionId, schema_name: schemaName, table_name: tableName }),
 };
 
 // Server Workflows API
@@ -232,12 +232,12 @@ export const serverWorkflowsAPI = {
   // Workflow CRUD operations
   getAll: () => piiApi.get('/server/workflows'),
   create: (workflowData) => piiApi.post('/server/workflows', workflowData),
-  getById: (id) => piiApi.get(`/server/workflows/${id}`),
-  update: (id, workflowData) => piiApi.put(`/server/workflows/${id}`, workflowData),
-  delete: (id) => piiApi.delete(`/server/workflows/${id}`),
+  getById: (id) => piiApi.post('/server/workflows/getById', { id }),
+  update: (id, workflowData) => piiApi.put('/server/workflows/update', { id, ...workflowData }),
+  delete: (id) => piiApi.delete('/server/workflows/delete', { data: { id } }),
 
   // Execution history
-  getExecutions: (workflowId) => piiApi.get(`/server/workflows/${workflowId}/executions`),
+  getExecutions: (workflowId) => piiApi.post('/server/workflows/executions', { workflow_id: workflowId }),
 
   // PII attributes (reuses same endpoint as two-server system)
   getPiiAttributes: () => piiApi.get('/server/workflows/pii-attributes'),
@@ -246,23 +246,23 @@ export const serverWorkflowsAPI = {
 // Server Execution/Masking API
 export const serverMaskingAPI = {
   // Execute workflow (in-place UPDATE)
-  executeWorkflow: (workflowId) => piiApi.post(`/server/workflows/${workflowId}/execute`),
+  executeWorkflow: (workflowId) => piiApi.post('/server/workflows/execute', { workflow_id: workflowId }),
 
   // Get execution status
   getExecutionStatus: (workflowId, executionId) =>
-    piiApi.get(`/server/workflows/${workflowId}/executions/${executionId}/status`),
+    piiApi.post('/server/workflows/executions/status', { workflow_id: workflowId, execution_id: executionId }),
 
   // Stop running execution
   stopExecution: (workflowId, executionId) =>
-    piiApi.post(`/server/workflows/${workflowId}/executions/${executionId}/stop`),
+    piiApi.post('/server/workflows/executions/stop', { workflow_id: workflowId, execution_id: executionId }),
 
   // Pause running execution
   pauseExecution: (workflowId, executionId) =>
-    piiApi.post(`/server/workflows/${workflowId}/executions/${executionId}/pause`),
+    piiApi.post('/server/workflows/executions/pause', { workflow_id: workflowId, execution_id: executionId }),
 
   // Resume paused execution
   resumeExecution: (workflowId, executionId) =>
-    piiApi.post(`/server/workflows/${workflowId}/executions/${executionId}/resume`),
+    piiApi.post('/server/workflows/executions/resume', { workflow_id: workflowId, execution_id: executionId }),
 
   // Generate sample masked data for preview (reuses same endpoint)
   generateSampleData: (piiAttribute, count = 5) =>
@@ -274,33 +274,33 @@ export const serverMaskingAPI = {
 
   // Preview masking - get sample records with original and masked data
   getPreviewMasking: (workflowId, limit = 10) =>
-    piiApi.get(`/server/workflows/${workflowId}/preview?limit=${limit}`),
+    piiApi.post('/server/workflows/preview', { workflow_id: workflowId, limit }),
 };
 
 // Server Constraints API
 export const serverConstraintsAPI = {
   // Check all constraints for a specific table
   checkAll: (connectionId, schemaName, tableName) =>
-    piiApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/all`),
+    piiApi.post('/server/constraints/all', { connection_id: connectionId, schema_name: schemaName, table_name: tableName }),
 
   // Individual constraint checks
   checkPrimaryKeys: (connectionId, schemaName, tableName) =>
-    piiApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/primary-keys`),
+    piiApi.post('/server/constraints/primaryKeys', { connection_id: connectionId, schema_name: schemaName, table_name: tableName }),
 
   checkForeignKeys: (connectionId, schemaName, tableName) =>
-    piiApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/foreign-keys`),
+    piiApi.post('/server/constraints/foreignKeys', { connection_id: connectionId, schema_name: schemaName, table_name: tableName }),
 
   checkUniqueConstraints: (connectionId, schemaName, tableName) =>
-    piiApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/unique`),
+    piiApi.post('/server/constraints/unique', { connection_id: connectionId, schema_name: schemaName, table_name: tableName }),
 
   checkCheckConstraints: (connectionId, schemaName, tableName) =>
-    piiApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/check`),
+    piiApi.post('/server/constraints/check', { connection_id: connectionId, schema_name: schemaName, table_name: tableName }),
 
   checkTriggers: (connectionId, schemaName, tableName) =>
-    piiApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/triggers`),
+    piiApi.post('/server/constraints/triggers', { connection_id: connectionId, schema_name: schemaName, table_name: tableName }),
 
   checkIndexes: (connectionId, schemaName, tableName) =>
-    piiApi.get(`/server/connections/${connectionId}/tables/${schemaName}/${tableName}/constraints/indexes`)
+    piiApi.post('/server/constraints/indexes', { connection_id: connectionId, schema_name: schemaName, table_name: tableName })
 };
 
 export default api;

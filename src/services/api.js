@@ -135,7 +135,7 @@ export const userAPI = {
 // =====================================================
 // API instance for Server APIs (Production)
 // =====================================================
-const POC_API_BASE_URL = process.env.REACT_APP_POC_API_BASE_URL || 'http://localhost:8000/api';
+const POC_API_BASE_URL = (process.env.REACT_APP_API_URL || 'http://localhost:8000') + '/api';
 
 // Create axios instance for server APIs with auth
 const piiApi = axios.create({

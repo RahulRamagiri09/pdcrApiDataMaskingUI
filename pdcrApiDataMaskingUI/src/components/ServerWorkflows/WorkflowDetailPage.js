@@ -50,6 +50,7 @@ import {
   Bolt as BoltIcon,
   Storage as StorageIcon,
   Preview as PreviewIcon,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { serverWorkflowsAPI, serverMaskingAPI, serverConnectionsAPI, serverConstraintsAPI } from '../../services/api';
@@ -355,6 +356,32 @@ const WorkflowDetailPage = () => {
       logs: [],
       executionId: null
     });
+  };
+
+  const handleExportLogs = () => {
+    // Format date as MM_DD_YYYY
+    const today = new Date();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const year = today.getFullYear();
+    const dateStr = `${month}_${day}_${year}`;
+
+    // Create filename: workflowname_date.txt
+    const fileName = `${workflow.name.replace(/\s+/g, '_')}_${dateStr}.txt`;
+
+    // Create log content with numbered lines
+    const logContent = logsDialog.logs
+      .map((log, index) => `${index + 1}. ${log}`)
+      .join('\n');
+
+    // Create and download file
+    const blob = new Blob([logContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleStopExecution = async (executionId) => {
@@ -2160,8 +2187,28 @@ const WorkflowDetailPage = () => {
       maxWidth="md"
       fullWidth
     >
-      <DialogTitle>
-        Execution Logs - ID: {logsDialog.executionId}
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>Execution Logs - ID: {logsDialog.executionId}</span>
+        <Button
+          onClick={handleExportLogs}
+          startIcon={<DownloadIcon />}
+          disabled={logsDialog.logs.length === 0}
+          size="small"
+          variant="contained"
+          sx={{
+            backgroundColor: '#0b2677',
+            color: 'white',
+            '&:hover': {
+              backgroundColor: '#092057',
+            },
+            '&:disabled': {
+              backgroundColor: '#ccc',
+              color: '#666',
+            },
+          }}
+        >
+          Export Logs
+        </Button>
       </DialogTitle>
       <DialogContent>
         {logsDialog.logs.length === 0 ? (

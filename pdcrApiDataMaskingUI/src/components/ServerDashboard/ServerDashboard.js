@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Grid,
   Card,
   CardContent,
   Typography,
@@ -17,13 +16,10 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import {
-  Storage as StorageIcon,
   PlayArrow as PlayIcon,
   Add as AddIcon,
   CheckCircle as CheckIcon,
   Error as ErrorIcon,
-  PersonAdd as PersonAddIcon,
-  Security as SecurityIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon,
   AccountTree as WorkflowIcon,
   Visibility as VisibilityIcon,
@@ -33,7 +29,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../common/PageHeader';
 import { serverConnectionsAPI, serverWorkflowsAPI } from '../../services/api';
-import { getCurrentUser } from '../../utils/auth';
 import { usePermission } from '../../hooks/usePermission';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -52,7 +47,6 @@ const theme = createTheme({
 
 const ServerDashboard = () => {
   const navigate = useNavigate();
-  const user = getCurrentUser();
 
   // RBAC permissions
   const canCreateWorkflow = usePermission('workflow.create');
@@ -65,7 +59,7 @@ const ServerDashboard = () => {
   });
   const [workflowExecutions, setWorkflowExecutions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tableLoading, setTableLoading] = useState(false);
+  const [tableLoading] = useState(false);
   const [error, setError] = useState(null);
   const [quickActionsAnchor, setQuickActionsAnchor] = useState(null);
 

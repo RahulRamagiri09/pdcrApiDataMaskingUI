@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { userAPI, roleAPI } from '../../services/api';
+import PageHeader from '../common/PageHeader';
 
 const UserRegistration = () => {
   const navigate = useNavigate();
@@ -119,7 +120,9 @@ const UserRegistration = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-8" style={{backgroundColor: '#f5f5f5'}}>
+    <>
+      <PageHeader title="Register User" />
+      <div className="min-h-screen flex items-center justify-center py-8" style={{backgroundColor: '#f5f5f5'}}>
       <div className="bg-white p-10 rounded-lg shadow-xl w-full max-w-2xl">
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-8">User Registration</h2>
 
@@ -295,11 +298,12 @@ const UserRegistration = () => {
         </form>
 
         <div className="mt-6 text-center space-y-2">
-          <p className="text-sm text-gray-600">Need to create a role first? <Link to="/register-role" className="font-medium hover:underline" style={{color: '#0b2677'}}>Create Role</Link></p>
-          <p className="text-sm text-gray-600">Go back to <Link to="/dashboard" className="font-medium hover:underline" style={{color: '#0b2677'}}>Dashboard</Link></p>
+          <p className="text-sm text-gray-600">Need to create a role first? <Link to="/registerrole" className="font-medium hover:underline" style={{color: '#0b2677'}}>Create Role</Link></p>
+          <p className="text-sm text-gray-600">Go back to <Link to="/datamasking/dashboard" className="font-medium hover:underline" style={{color: '#0b2677'}}>Dashboard</Link></p>
         </div>
       </div>
     </div>
+    </>
   );
 };
 

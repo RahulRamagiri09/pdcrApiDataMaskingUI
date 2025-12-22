@@ -53,7 +53,6 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { serverWorkflowsAPI, serverMaskingAPI, serverConnectionsAPI, serverConstraintsAPI } from '../../services/api';
-import { getCurrentUser } from '../../utils/auth';
 import { isAdmin } from '../../utils/rbac';
 import PageHeader from '../common/PageHeader';
 import ProtectedAction from '../common/ProtectedAction';
@@ -106,7 +105,6 @@ function TabPanel({ children, value, index, ...other }) {
 
 const WorkflowDetailPage = () => {
   const navigate = useNavigate();
-  const user = getCurrentUser();
   const { id: workflowId } = useParams();
   console.log('[DEBUG] workflowId from useParams:', workflowId);
   const [searchParams] = useSearchParams();
@@ -114,7 +112,6 @@ const WorkflowDetailPage = () => {
 
   // RBAC permissions
   const canExecute = usePermission('workflow.execute');
-  const canUpdate = usePermission('workflow.update');
   const canDelete = usePermission('workflow.delete');
   const canStopExecution = usePermission('execution.stop');
   const canPauseExecution = usePermission('execution.pause');
@@ -139,7 +136,6 @@ const WorkflowDetailPage = () => {
   });
 
   // Constraint checking state
-  const [mappingTabValue, setMappingTabValue] = useState({});
   const [constraintChecks, setConstraintChecks] = useState({});
   const [expandedConstraints, setExpandedConstraints] = useState({});
 
@@ -606,13 +602,6 @@ const WorkflowDetailPage = () => {
   };
 
   // Constraint checking handlers
-  const handleMappingTabChange = (index, newValue) => {
-    setMappingTabValue(prev => ({
-      ...prev,
-      [index]: newValue
-    }));
-  };
-
   const handleCheckAllConstraints = async (mapping, mappingIndex) => {
     const [destSchema, destTable] = mapping.destination_table.split('.');
 
@@ -2291,7 +2280,7 @@ const WorkflowDetailPage = () => {
             <ArrowBackIcon />
           </IconButton>
           <Box flexGrow={1}>
-            <Typography variant="h4">
+            <Typography variant="h6">
               {workflow.name}
             </Typography>
             {/* <Typography variant="subtitle1" color="text.secondary">

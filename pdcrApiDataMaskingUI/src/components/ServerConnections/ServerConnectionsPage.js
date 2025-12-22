@@ -20,15 +20,12 @@ import {
   Delete as DeleteIcon,
   CheckCircle as CheckIcon,
   Error as ErrorIcon,
-  Storage as StorageIcon,
-  Hub as HubIcon,
 } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import { serverConnectionsAPI } from '../../services/api';
 import CreateConnectionDialog from './CreateConnectionDialog';
 import PageHeader from '../common/PageHeader';
 import ProtectedAction from '../common/ProtectedAction';
-import { getCurrentUser } from '../../utils/auth';
 import { usePermission } from '../../hooks/usePermission';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -46,7 +43,6 @@ const theme = createTheme({
 });
 
 const ServerConnectionsPage = () => {
-  const user = getCurrentUser();
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -55,7 +51,6 @@ const ServerConnectionsPage = () => {
   const [connectionToDelete, setConnectionToDelete] = useState(null);
 
   // RBAC permissions
-  const canCreate = usePermission('connection.create');
   const canDelete = usePermission('connection.delete');
 
   useEffect(() => {

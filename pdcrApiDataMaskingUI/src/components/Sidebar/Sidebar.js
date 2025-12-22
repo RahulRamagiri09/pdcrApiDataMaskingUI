@@ -11,7 +11,6 @@ import {
   Divider,
   Tooltip,
   Box,
-  Typography,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -50,13 +49,13 @@ const navigationItems = [
   {
     text: 'Register User',
     icon: <PersonAddIcon />,
-    path: '/register-user',
+    path: '/registeruser',
     section: 'admin',
   },
   {
     text: 'Register Role',
     icon: <SecurityIcon />,
-    path: '/register-role',
+    path: '/registerrole',
     section: 'admin',
   },
 ];

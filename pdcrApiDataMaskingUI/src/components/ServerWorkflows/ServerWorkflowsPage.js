@@ -53,7 +53,6 @@ const ServerWorkflowsPage = () => {
   const [error, setError] = useState(null);
 
   // RBAC permissions
-  const canCreate = usePermission('workflow.create');
   const canDelete = usePermission('workflow.delete');
 
   // Load workflows on mount and when navigating back to this page

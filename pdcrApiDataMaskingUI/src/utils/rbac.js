@@ -3,6 +3,8 @@ import { getCurrentUser } from './auth';
 // Permission definitions based on role
 const PERMISSIONS = {
   admin: [
+    // Admin route access
+    'admin.access',
     // Connection permissions
     'connection.view',
     'connection.create',

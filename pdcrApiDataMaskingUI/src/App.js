@@ -57,7 +57,7 @@ function App() {
             <Route
               path="/datamasking/workflows/create"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredPermission="workflow.create">
                   <MainLayout>
                     <CreateServerWorkflowPage />
                   </MainLayout>
@@ -67,7 +67,7 @@ function App() {
             <Route
               path="/datamasking/workflows/:id/edit"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredPermission="workflow.update">
                   <MainLayout>
                     <CreateServerWorkflowPage />
                   </MainLayout>
@@ -87,9 +87,9 @@ function App() {
 
             {/* Admin routes - Wrapped with MainLayout */}
             <Route
-              path="/register-role"
+              path="/registerrole"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredPermission="admin.access" redirectTo="/datamasking/dashboard">
                   <MainLayout>
                     <RoleRegistration />
                   </MainLayout>
@@ -97,9 +97,9 @@ function App() {
               }
             />
             <Route
-              path="/register-user"
+              path="/registeruser"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredPermission="admin.access" redirectTo="/datamasking/dashboard">
                   <MainLayout>
                     <UserRegistration />
                   </MainLayout>

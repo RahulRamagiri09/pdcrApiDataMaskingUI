@@ -40,8 +40,7 @@ import {
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
-import { serverConnectionsAPI, serverWorkflowsAPI, serverMaskingAPI } from '../../services/api';
-import { getCurrentUser } from '../../utils/auth';
+import { serverConnectionsAPI, serverWorkflowsAPI } from '../../services/api';
 import PageHeader from '../common/PageHeader';
 import { usePermission } from '../../hooks/usePermission';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -62,7 +61,6 @@ const theme = createTheme({
 const CreateWorkflowPage = () => {
   const navigate = useNavigate();
   const { id: workflowId } = useParams();
-  const user = getCurrentUser();
   const isEditMode = Boolean(workflowId);
 
   // RBAC permissions
@@ -174,6 +172,7 @@ const CreateWorkflowPage = () => {
     if (isEditMode && workflowId) {
       loadWorkflowForEdit(workflowId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflowId, isEditMode]);
 
   const loadInitialData = async () => {

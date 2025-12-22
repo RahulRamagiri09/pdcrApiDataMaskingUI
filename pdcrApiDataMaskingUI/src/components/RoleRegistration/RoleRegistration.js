@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { roleAPI } from '../../services/api';
+import PageHeader from '../common/PageHeader';
 
 const RoleRegistration = () => {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ const RoleRegistration = () => {
 
       // Optionally redirect after a delay
       setTimeout(() => {
-        navigate('/register-user');
+        navigate('/registeruser');
       }, 2000);
     } catch (error) {
       console.error('Role registration error:', error);
@@ -62,7 +63,9 @@ const RoleRegistration = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#f5f5f5'}}>
+    <>
+      <PageHeader title="Register Role" />
+      <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#f5f5f5'}}>
       <div className="bg-white p-10 rounded-lg shadow-xl w-full max-w-md">
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-8">Create New Role</h2>
 
@@ -108,11 +111,12 @@ const RoleRegistration = () => {
         </form>
 
         <div className="mt-6 text-center space-y-2">
-          <p className="text-sm text-gray-600">Need to create a user? <Link to="/register-user" className="font-medium hover:underline" style={{color: '#0b2677'}}>Register User</Link></p>
-          <p className="text-sm text-gray-600">Go back to <Link to="/dashboard" className="font-medium hover:underline" style={{color: '#0b2677'}}>Dashboard</Link></p>
+          <p className="text-sm text-gray-600">Need to create a user? <Link to="/registeruser" className="font-medium hover:underline" style={{color: '#0b2677'}}>Register User</Link></p>
+          <p className="text-sm text-gray-600">Go back to <Link to="/datamasking/dashboard" className="font-medium hover:underline" style={{color: '#0b2677'}}>Dashboard</Link></p>
         </div>
       </div>
     </div>
+    </>
   );
 };
 

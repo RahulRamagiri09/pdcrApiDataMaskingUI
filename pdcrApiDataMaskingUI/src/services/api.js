@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { encrypt, decrypt, isEncryptionEnabled } from '../utils/encryption';
 
 // Configure base URL for API
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -37,6 +38,12 @@ api.interceptors.request.use(
       headers: config.headers
     }, null, 2));
 
+    // Encrypt request payload if encryption is enabled
+    if (config.data && isEncryptionEnabled()) {
+      console.log('🔐 Encrypting request payload...');
+      config.data = { encrypted: encrypt(config.data) };
+    }
+
     return config;
   },
   (error) => {
@@ -47,8 +54,21 @@ api.interceptors.request.use(
 
 // Add response interceptor to handle errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Decrypt response if encrypted and encryption is enabled
+    if (response.data?.encrypted && isEncryptionEnabled()) {
+      console.log('🔓 Decrypting response payload...');
+      response.data = decrypt(response.data.encrypted);
+    }
+    return response;
+  },
   (error) => {
+    // Decrypt error response if encrypted and encryption is enabled
+    if (error.response?.data?.encrypted && isEncryptionEnabled()) {
+      console.log('🔓 Decrypting error response...');
+      error.response.data = decrypt(error.response.data.encrypted);
+    }
+
     console.error('🚨 API Error Details:');
     console.error('   Status:', error.response?.status);
     console.error('   URL:', error.config?.url);
@@ -140,7 +160,7 @@ const POC_API_BASE_URL = (process.env.REACT_APP_API_URL || 'http://localhost:800
 // Create axios instance for server APIs with auth
 const piiApi = axios.create({
   baseURL: POC_API_BASE_URL,
-  timeout: 30000,
+  // timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -154,6 +174,13 @@ piiApi.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     console.log(`Making ${config.method?.toUpperCase()} request to ${config.url}`);
+
+    // Encrypt request payload if encryption is enabled
+    if (config.data && isEncryptionEnabled()) {
+      console.log('🔐 Encrypting piiApi request payload...');
+      config.data = { encrypted: encrypt(config.data) };
+    }
+
     return config;
   },
   (error) => {
@@ -165,9 +192,20 @@ piiApi.interceptors.request.use(
 // API error handling
 piiApi.interceptors.response.use(
   (response) => {
+    // Decrypt response if encrypted and encryption is enabled
+    if (response.data?.encrypted && isEncryptionEnabled()) {
+      console.log('🔓 Decrypting piiApi response payload...');
+      response.data = decrypt(response.data.encrypted);
+    }
     return response;
   },
   (error) => {
+    // Decrypt error response if encrypted and encryption is enabled
+    if (error.response?.data?.encrypted && isEncryptionEnabled()) {
+      console.log('🔓 Decrypting piiApi error response...');
+      error.response.data = decrypt(error.response.data.encrypted);
+    }
+
     console.error('API Response error:', error);
 
     if (error.response?.status === 401) {

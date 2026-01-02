@@ -27,6 +27,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { serverWorkflowsAPI } from '../../services/api';
 import PageHeader from '../common/PageHeader';
 import ProtectedAction from '../common/ProtectedAction';
+import ConfirmDeleteDialog from '../common/ConfirmDeleteDialog';
 import { usePermission } from '../../hooks/usePermission';
 // import { getCurrentUser } from '../../utils/auth';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -51,6 +52,8 @@ const ServerWorkflowsPage = () => {
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [workflowToDelete, setWorkflowToDelete] = useState(null);
 
   // RBAC permissions
   const canDelete = usePermission('workflow.delete');
@@ -76,21 +79,35 @@ const ServerWorkflowsPage = () => {
     }
   };
 
-  const handleDeleteWorkflow = async (workflowId) => {
+  const handleDeleteWorkflow = (workflow) => {
+    setWorkflowToDelete(workflow);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
     // Check permission before deletion
     if (!canDelete) {
       setError('You do not have permission to delete workflows');
+      setDeleteDialogOpen(false);
+      setWorkflowToDelete(null);
       return;
     }
 
-    if (window.confirm('Are you sure you want to delete this workflow?')) {
-      try {
-        await serverWorkflowsAPI.delete(workflowId);
-        setWorkflows(workflows.filter(workflow => workflow.id !== workflowId));
-      } catch (err) {
-        setError(err.message);
-      }
+    try {
+      await serverWorkflowsAPI.delete(workflowToDelete.id);
+      setWorkflows(workflows.filter(workflow => workflow.id !== workflowToDelete.id));
+      setDeleteDialogOpen(false);
+      setWorkflowToDelete(null);
+    } catch (err) {
+      setError(err.message);
+      setDeleteDialogOpen(false);
+      setWorkflowToDelete(null);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setWorkflowToDelete(null);
   };
 
   const getStatusChip = (status) => {
@@ -217,7 +234,7 @@ const ServerWorkflowsPage = () => {
           <ProtectedAction action="workflow.delete" showDisabled>
             <IconButton
               size="small"
-              onClick={() => handleDeleteWorkflow(params.row.id)}
+              onClick={() => handleDeleteWorkflow(params.row)}
               color="error"
               title="Delete"
             >
@@ -356,6 +373,15 @@ const ServerWorkflowsPage = () => {
             </Box>
           </CardContent>
         </Card>
+
+        <ConfirmDeleteDialog
+          open={deleteDialogOpen}
+          onClose={handleCancelDelete}
+          onConfirm={handleConfirmDelete}
+          title="Delete Workflow"
+          itemType="workflow"
+          itemName={workflowToDelete?.name}
+        />
       </Box>
     );
   };

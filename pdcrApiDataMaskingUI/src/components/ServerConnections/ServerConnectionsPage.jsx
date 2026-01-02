@@ -9,11 +9,6 @@ import {
   CircularProgress,
   IconButton,
   Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  DialogContentText,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -26,6 +21,7 @@ import { serverConnectionsAPI } from '../../services/api';
 import CreateConnectionDialog from './CreateConnectionDialog';
 import PageHeader from '../common/PageHeader';
 import ProtectedAction from '../common/ProtectedAction';
+import ConfirmDeleteDialog from '../common/ConfirmDeleteDialog';
 import { usePermission } from '../../hooks/usePermission';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -335,30 +331,14 @@ const ServerConnectionsPage = () => {
           }}
         />
 
-        <Dialog
+        <ConfirmDeleteDialog
           open={deleteDialogOpen}
           onClose={handleCancelDelete}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>Delete Connection</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              Are you sure you want to delete the connection <strong>"{connectionToDelete?.name}"</strong>?
-              <br />
-              <br />
-              This action cannot be undone and will permanently remove this connection from the system.
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCancelDelete} color="primary">
-              Cancel
-            </Button>
-            <Button onClick={handleConfirmDelete} color="error" variant="contained">
-              Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
+          onConfirm={handleConfirmDelete}
+          title="Delete Connection"
+          itemType="connection"
+          itemName={connectionToDelete?.name}
+        />
       </Box>
     );
   };

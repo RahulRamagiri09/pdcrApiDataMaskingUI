@@ -2,7 +2,8 @@ import axios from 'axios';
 import { encrypt, decrypt, isEncryptionEnabled } from '../utils/encryption';
 
 // Configure base URL for API
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // Create axios instance with default config
 const api = axios.create({
@@ -155,7 +156,8 @@ export const userAPI = {
 // =====================================================
 // API instance for Server APIs (Production)
 // =====================================================
-const POC_API_BASE_URL = (process.env.REACT_APP_API_URL || 'http://localhost:8000') + '/api';
+// const POC_API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000') + '/api';
+const POC_API_BASE_URL = (import.meta.env.VITE_API_URL) + '/api';
 
 // Create axios instance for server APIs with auth
 const piiApi = axios.create({

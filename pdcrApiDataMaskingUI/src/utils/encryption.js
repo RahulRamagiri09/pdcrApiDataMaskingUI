@@ -1,7 +1,7 @@
 import CryptoJS from 'crypto-js';
 
-const ENCRYPTION_KEY = process.env.REACT_APP_ENCRYPTION_KEY;
-const ENCRYPTION_ENABLED = process.env.REACT_APP_ENCRYPTION_ENABLED === 'true';
+const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY;
+const ENCRYPTION_ENABLED = import.meta.env.VITE_ENCRYPTION_ENABLED === 'true';
 
 /**
  * Check if encryption is enabled

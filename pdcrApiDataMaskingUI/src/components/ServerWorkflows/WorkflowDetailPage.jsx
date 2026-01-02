@@ -57,6 +57,7 @@ import { serverWorkflowsAPI, serverMaskingAPI, serverConnectionsAPI, serverConst
 import { isAdmin } from '../../utils/rbac';
 import PageHeader from '../common/PageHeader';
 import ProtectedAction from '../common/ProtectedAction';
+import ConfirmDeleteDialog from '../common/ConfirmDeleteDialog';
 import { usePermission } from '../../hooks/usePermission';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -135,6 +136,7 @@ const WorkflowDetailPage = () => {
     logs: [],
     executionId: null
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Constraint checking state
   const [constraintChecks, setConstraintChecks] = useState({});
@@ -325,21 +327,29 @@ const WorkflowDetailPage = () => {
     }
   };
 
-  const handleDeleteWorkflow = async () => {
+  const handleDeleteWorkflow = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
     // Check permission
     if (!canDelete) {
       setError('You do not have permission to delete workflows');
+      setDeleteDialogOpen(false);
       return;
     }
 
-    if (window.confirm('Are you sure you want to delete this workflow? This action cannot be undone.')) {
-      try {
-        await serverWorkflowsAPI.delete(workflowId);
-        navigate('/datamasking/workflows');
-      } catch (err) {
-        setError(err.message);
-      }
+    try {
+      await serverWorkflowsAPI.delete(workflowId);
+      navigate('/datamasking/workflows');
+    } catch (err) {
+      setError(err.message);
+      setDeleteDialogOpen(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
   };
 
   const handleViewLogs = (execution) => {
@@ -2402,6 +2412,14 @@ const WorkflowDetailPage = () => {
         {workflowDetailContent()}
       </Box>
       {renderLogsDialog()}
+      <ConfirmDeleteDialog
+        open={deleteDialogOpen}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Delete Workflow"
+        itemType="workflow"
+        itemName={workflow?.name}
+      />
     </ThemeProvider>
   );
 };

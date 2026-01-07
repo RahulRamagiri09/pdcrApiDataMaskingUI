@@ -28,9 +28,13 @@
     "vite": "^6.0.7"
   },
   "scripts": {
-    "dev": "vite",
-    "start": "vite",
-    "build": "vite build",
+    "start:loc": "vite --mode loc",
+    "start:dev": "vite --mode dev",
+    "start:qa": "vite --mode qa",
+    "start:prod": "vite --mode prod",
+    "build:dev": "vite build --mode dev",
+    "build:qa": "vite build --mode qa",
+    "build:prod": "vite build --mode prod",
     "preview": "vite preview"
   },
   "browserslist": {

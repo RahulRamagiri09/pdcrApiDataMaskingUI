@@ -4,6 +4,10 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
+  console.log(`\n  Environment: ${mode}`)
+  console.log(`  API URL: ${env.VITE_API_URL}`)
+  console.log(`  Port: ${env.VITE_PORT || 5000}\n`)
+
   return {
     plugins: [react()],
     server: {

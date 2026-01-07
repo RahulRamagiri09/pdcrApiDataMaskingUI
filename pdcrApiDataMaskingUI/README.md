@@ -1,70 +1,89 @@
-# Getting Started with Create React App
+# PII Masking Tool
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React-based web application for masking Personally Identifiable Information (PII) in databases. This tool performs in-place data masking using UPDATE operations directly within the same database.
 
-## Available Scripts
+## Prerequisites
 
-In the project directory, you can run:
+- Node.js: 23.11.1
+- npm: 10.9.2
 
-### `npm start`
+## Installation
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```bash
+npm install
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Environment Configuration
 
-### `npm test`
+The application uses different environment files for different deployment environments. Copy `.env.example` to create environment-specific files:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+# Create environment files from example
+cp .env.example .env.loc    # Local development
+cp .env.example .env.dev    # Development server
+cp .env.example .env.qa     # QA server
+cp .env.example .env.prod   # Production server
+```
 
-### `npm run build`
+### Environment Variables
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `VITE_API_URL` | Backend API URL | `http://localhost:9000` |
+| `VITE_PORT` | Application port | `5000` |
+| `VITE_ENCRYPTION_ENABLED` | Enable/disable encryption | `true` |
+| `VITE_ENCRYPTION_KEY` | 32-character AES-256 key | `YourSecure32CharacterKeyHere!!` |
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Running the Application
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Development
 
-### `npm run eject`
+```bash
+# Local environment
+npm run start:loc
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+# Development server
+npm run start:dev
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+# QA server
+npm run start:qa
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+# Production server
+npm run start:prod
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Building for Production
 
-## Learn More
+```bash
+# Build for development
+npm run build:dev
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+# Build for QA
+npm run build:qa
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+# Build for production
+npm run build:prod
+```
 
-### Code Splitting
+### Preview Build
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```bash
+npm run preview
+```
 
-### Analyzing the Bundle Size
+## Project Structure
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```
+src/
+├── components/     # Reusable UI components
+├── pages/          # Page components
+├── services/       # API service functions
+├── utils/          # Utility functions
+└── App.jsx         # Main application component
+```
 
-### Making a Progressive Web App
+## Documentation
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+See the `docs/` folder for detailed documentation:
+- [How It Works](docs/PII_Masking_Tool_How_It_Works.md)
+- [MasterCraft vs PII Tool Comparison](docs/MasterCraft_vs_PII_Tool_Simple.md)

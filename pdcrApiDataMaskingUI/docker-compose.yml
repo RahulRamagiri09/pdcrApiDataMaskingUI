@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  pii-masking-tool:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pii-masking-tool
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
